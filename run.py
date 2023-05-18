@@ -14,8 +14,8 @@ from utils.i2c_lcd_driver import *
 
 
 # Motor driver object init
-M_Rot = DRV8825(dir_pin=13, step_pin=19, enable_pin=12, mode_pins=(16, 17, 20))
-M_Lin = DRV8825(dir_pin=24, step_pin=18, enable_pin=4, mode_pins=(21, 22, 27))
+M_Rot = DRV8825(dir_pin=13, step_pin=19, enable_pin=12, mode_pins=(16, 17))
+M_Lin = DRV8825(dir_pin=24, step_pin=18, enable_pin=4, mode_pins=(21, 22))
 
 # Setting microstep size to 1/8
 M_Rot.set_microstep('software','1/4step')
@@ -76,7 +76,7 @@ def run_MRot(steps, delay):
     M_Rot.stop()
     M_Rot.running = False
 
-    # print("M_Rot done!")
+    print("M_Rot done!")
 
 
 def run_MRot_until(Dir, delay):
@@ -86,7 +86,7 @@ def run_MRot_until(Dir, delay):
 
     M_Rot.stop()
 
-    # print("M_Rot done!")
+    print("M_Rot done!")
 
 
 def run_MLin(steps, delay):
@@ -99,7 +99,7 @@ def run_MLin(steps, delay):
     M_Lin.stop()
     M_Lin.running = False
 
-    # print("M_Lin done!")
+    print("M_Lin done!")
 
 
 def run_MLin_until(steps, delay):
@@ -404,7 +404,7 @@ interface = InterfaceThread()
 interface_thread = threading.Thread(target=interface.check_all_switches)
 
 # Create LStrip thread
-LStrip = threading.Thread(target=run_LedStrip)
+# LStrip = threading.Thread(target=run_LedStrip)
 lcd_display = lcd()
 
 def main():
@@ -543,7 +543,7 @@ def main():
                     if interface.stop_program or interface.next_drawing:
                         break
 
-                    # print("Motors done!")
+                    print("Motors done!")
                     first_step = False
 
                 first_file = False

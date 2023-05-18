@@ -49,37 +49,35 @@ class DRV8825():
         (2) stepformat
             ('fullstep', 'halfstep', '1/4step', '1/8step', '1/16step', '1/32step')
         """
-        microstep = {'fullstep': (0, 0, 0),
-                     'halfstep': (1, 0, 0),
-                     '1/4step': (0, 1, 0),
-                     '1/8step': (1, 1, 0),
-                     '1/16step': (0, 0, 1),
-                     '1/32step': (1, 0, 1)}
+        microstep = {'halfstep': (1, 0),
+                     '1/4step': (0, 1),
+                     '1/8step': (0, 0),
+                     '1/16step': (1, 1)}
 
-        # print("Control mode: ",mode)
+        print("Control mode: ",mode)
         if (mode == ControlMode[1]):
-            # print("set pins: {}".format(stepformat))
+            print("set pins: {}".format(stepformat))
             self.digital_write(self.mode_pins, microstep[stepformat])
 
 
     def turn_steps(self, Dir, steps, stepdelay):
         if (Dir == MotorDir[0]):
-            # print("forward")
+            print("forward")
             self.digital_write(self.enable_pin, 0)
             self.digital_write(self.dir_pin, 0)
         elif (Dir == MotorDir[1]):
-            # print("backward")
+            print("backward")
             self.digital_write(self.enable_pin, 0)
             self.digital_write(self.dir_pin, 1)
         else:
-            # print("the dir must be : 'forward' or 'backward'")
+            print("the dir must be : 'forward' or 'backward'")
             self.digital_write(self.enable_pin, 1)
             return
 
         if (steps == 0):
             return
 
-        # print("turn step: ",steps)
+        print("turn step: ",steps)
         while steps > 0 and self.running:
             self.digital_write(self.step_pin, True)
             time.sleep(stepdelay)
@@ -90,19 +88,19 @@ class DRV8825():
 
     def turn_until_switch(self, Dir, limit_switch, stepdelay):
         if (Dir == MotorDir[0]):
-            # print("forward")
+            print("forward")
             self.digital_write(self.enable_pin, 0)
             self.digital_write(self.dir_pin, 0)
         elif (Dir == MotorDir[1]):
-            # print("backward")
+            print("backward")
             self.digital_write(self.enable_pin, 0)
             self.digital_write(self.dir_pin, 1)
         else:
-            # print("the dir must be : 'forward' or 'backward'")
+            print("the dir must be : 'forward' or 'backward'")
             self.digital_write(self.enable_pin, 1)
             return
 
-        # print("turn step: ",steps)
+        print("turn step: ",steps)
         pos = 0
         while GPIO.input(limit_switch) == 1 and self.running:
             self.digital_write(self.step_pin, True)
@@ -118,22 +116,22 @@ class DRV8825():
 
     def turn_check_cali(self, Dir, steps, limit_switch, stepdelay):
         if (Dir == MotorDir[0]):
-            # print("forward")
+            print("forward")
             self.digital_write(self.enable_pin, 0)
             self.digital_write(self.dir_pin, 0)
         elif (Dir == MotorDir[1]):
-            # print("backward")
+            print("backward")
             self.digital_write(self.enable_pin, 0)
             self.digital_write(self.dir_pin, 1)
         else:
-            # print("the dir must be : 'forward' or 'backward'")
+            print("the dir must be : 'forward' or 'backward'")
             self.digital_write(self.enable_pin, 1)
             return
 
         if (steps == 0):
             return
 
-        # print("turn step: ",steps)
+        print("turn step: ",steps)
         while steps > 0 and self.running:
             if GPIO.input(limit_switch) == 0:
                 return False

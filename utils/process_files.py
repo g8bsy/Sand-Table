@@ -17,7 +17,7 @@ def get_max_disp():
 
 def get_files(Dir="", folder=processed_folder):
     onlyfiles = [f for f in listdir(Dir + folder) if isfile(join(folder, f))]
-    # print("Tracks found: " + str(onlyfiles).replace('[', '').replace(']', ''))
+    print("Tracks found: " + str(onlyfiles).replace('[', '').replace(']', ''))
 
     return onlyfiles
 
@@ -128,4 +128,4 @@ def read_track(filename, Dir=""):
 
 if __name__ == '__main__':
     process_new_files(Dir="../")
-    # print("\n{}".format(read_track("SwoopyRadiance.txt", Dir="../")))
+    print("\n{}".format(read_track("SwoopyRadiance.txt", Dir="../")))
