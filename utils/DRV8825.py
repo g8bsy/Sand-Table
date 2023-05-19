@@ -132,6 +132,7 @@ class DRV8825():
             return
 
         print("turn step: ",steps)
+        print("delay: ",stepdelay)
         while steps > 0 and self.running:
             if GPIO.input(limit_switch) == 0:
                 return False
