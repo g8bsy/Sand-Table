@@ -364,7 +364,7 @@ def stop_program(shutdown=False):
 
     strip_thread.running = False
     strip_thread.colorWipe(strip, Color(0, 0, 0))
-    LStrip.join()
+    # LStrip.join()
 
     interface.running = False
     interface_thread.join()
@@ -416,7 +416,7 @@ def main():
         GPIO.output(motor_relay, GPIO.LOW)
         GPIO.output(led_relay, GPIO.LOW)
 
-        LStrip.start()
+        # LStrip.start()
 
         if not interface.displaying_options:
             lcd_display.lcd_clear()
