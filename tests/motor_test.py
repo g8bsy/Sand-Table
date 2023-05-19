@@ -44,8 +44,8 @@ try:
 #    run_MLin()
 except KeyboardInterrupt:
     print("\nMotors stopped")
-    M_Rot.Stop()
-    M_Lin.Stop()
+    M_Rot.stop()
+    M_Lin.stop()
     GPIO.cleanup()
     print("Exiting...")
     exit()
