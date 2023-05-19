@@ -33,8 +33,8 @@ led_relay = 25
 main_button = 26
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(outer_switch, GPIO.IN)
-GPIO.setup(inner_switch, GPIO.IN)
+GPIO.setup(outer_switch, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(inner_switch, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(main_button, GPIO.IN)
 GPIO.setup(motor_relay, GPIO.OUT)
 GPIO.setup(led_relay, GPIO.OUT)
@@ -425,10 +425,10 @@ def main():
         interface.currently_displayed.clear()
         interface.currently_displayed.extend((("....", 2, 8)))
 
-        process_new_files(Dir="/home/pi/Sand-Table/")
+        process_new_files(Dir="/home/gabrielp/Sand-Table/")
 
-        # files = get_files(Dir="/home/pi/Sand-Table/")
-        with open("/home/pi/Sand-Table/filenames.txt", "r") as f:
+        # files = get_files(Dir="/home/gabrielp/Sand-Table/")
+        with open("/home/gabrielp/Sand-Table/filenames.txt", "r") as f:
             content = f.readlines()
         files = [line.rstrip('\n') for line in content]
         shuffle(files)
@@ -482,7 +482,7 @@ def main():
                 interface.currently_displayed.clear()
                 interface.currently_displayed.extend((("Reading file....", 2, 0), (f, 3, 0)))
 
-                track = read_track(f, Dir="/home/pi/Sand-Table/")
+                track = read_track(f, Dir="/home/gabrielp/Sand-Table/")
 
                 if not interface.displaying_options:
                     lcd_display.lcd_clear()

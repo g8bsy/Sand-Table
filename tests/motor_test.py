@@ -14,7 +14,7 @@ def run_MRot():
             print("Step size: {}".format(step_size))
 
             M_Rot.turn_steps(Dir='forward', steps=12800, stepdelay=delay)
-            sleep(1)
+            sleep(2)
             M_Rot.turn_steps(Dir='backward', steps=12800, stepdelay=delay)
             sleep(2)
 
