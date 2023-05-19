@@ -135,10 +135,12 @@ class DRV8825():
         while steps > 0 and self.running:
             if GPIO.input(limit_switch) == 0:
                 return False
+            print("turn_check_cali " + str(steps))
             self.digital_write(self.step_pin, True)
             time.sleep(stepdelay)
             self.digital_write(self.step_pin, False)
             time.sleep(stepdelay)
             steps -= 1
 
+        print("turn_check_cali done")
         return True
