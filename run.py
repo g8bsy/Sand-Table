@@ -22,8 +22,8 @@ M_Rot.set_microstep('software','1/4step')
 M_Lin.set_microstep('software','1/4step')
 
 # Create NeoPixel object with appropriate configuration.
-strip = strip_init()
-strip_thread = LedStripThread()
+# strip = strip_init()
+# strip_thread = LedStripThread()
 
 # Setup for limit switches
 outer_switch = 5
@@ -362,8 +362,8 @@ def stop_program(shutdown=False):
 
     stop_motors()
 
-    strip_thread.running = False
-    strip_thread.colorWipe(strip, Color(0, 0, 0))
+    # strip_thread.running = False
+    # strip_thread.colorWipe(strip, Color(0, 0, 0))
     # LStrip.join()
 
     interface.running = False
