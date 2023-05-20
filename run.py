@@ -382,7 +382,7 @@ def stop_program(shutdown=False):
         lcd_display.lcd_clear()
         lcd_display.backlight(0)
 
-        call("sudo shutdown -h now", shell=True)
+        # call("sudo shutdown -h now", shell=True)
     else:
         GPIO.cleanup()
         print("Exiting...")

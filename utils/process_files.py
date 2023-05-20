@@ -2,7 +2,7 @@ import numpy as np
 
 from os import listdir
 from os.path import isfile, join
-
+import const
 
 microstep_size = 4
 max_disp = 7300
@@ -35,7 +35,7 @@ def get_coors(filename, folder):
         r = float(c[1])
 
         if (theta != 0 or r != 0):
-            theta = int(microstep_size * 3200 * theta / 6.28318531)
+            theta = int(microstep_size * const.STEPS_PER_REV * theta / 6.28318531)
             r = int(max_disp * r)
             coors = np.vstack((coors, [theta, r]))
 

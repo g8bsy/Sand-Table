@@ -1,6 +1,7 @@
 from os import listdir
 from os.path import isfile, join
 import math
+import const
 
 def get_files(mypath):
     onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
@@ -12,7 +13,7 @@ def get_files(mypath):
 def stepper_coors(mypath, file_name, coor_amt, revs):
     f = open(mypath + file_name, "w")
 
-    rev_steps = 3200
+    rev_steps = const.STEPS_PER_REV
     arm_length = 1900
     currentTheta = 0 # theta coordinate val in steps
     theta_steps = round(rev_steps / coor_amt)
@@ -66,7 +67,7 @@ def square_spiral(amp, theta, layers):
 def plotting_coors(mypath, file_name, coor_amt, max_amp, revs):
     f = open(mypath + file_name, "w")
 
-    rev_steps = 3200 # default sand table mechanism setting for steps per rev
+    rev_steps = const.STEPS_PER_REV # default sand table mechanism setting for steps per rev
     currentTheta = 0 # theta coordinate val in steps
     theta_steps = round(rev_steps / coor_amt)
 

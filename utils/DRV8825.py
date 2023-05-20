@@ -62,11 +62,11 @@ class DRV8825():
 
     def turn_steps(self, Dir, steps, stepdelay):
         if (Dir == MotorDir[0]):
-            print("forward")
+            # print("forward")
             self.digital_write(self.enable_pin, 0)
             self.digital_write(self.dir_pin, 0)
         elif (Dir == MotorDir[1]):
-            print("backward")
+            # print("backward")
             self.digital_write(self.enable_pin, 0)
             self.digital_write(self.dir_pin, 1)
         else:
@@ -77,7 +77,7 @@ class DRV8825():
         if (steps == 0):
             return
 
-        print("turn step: ",steps)
+        # print("turn step: ",steps)
         while steps > 0 and self.running:
             self.digital_write(self.step_pin, True)
             time.sleep(stepdelay)

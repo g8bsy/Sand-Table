@@ -1,4 +1,5 @@
 import numpy as np
+import const
 
 from os import listdir
 from os.path import isfile, join
@@ -23,7 +24,7 @@ def get_coors(filename, folder, max_lin=1928):
         r = float(c[c.find(" ")+1:])
 
         if (theta != 0):
-            theta = int(3200 * theta)
+            theta = int(const.STEPS_PER_REV * theta)
             r = int(max_lin * r)
             coors = np.vstack((coors, [theta, r]))
 
@@ -46,7 +47,7 @@ def get_steps(filename, folder, max_lin=1928):
         r = float(c[c.find(" ")+1:])
 
         if (theta != 0):
-            theta = int(3200 * theta)
+            theta = int(const.STEPS_PER_REV * theta)
             r = int(max_lin * r)
             coors = np.vstack((coors, [theta, r]))
 

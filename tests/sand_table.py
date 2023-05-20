@@ -3,10 +3,10 @@ from DRV8825 import DRV8825
 import threading
 import math
 from time import sleep
-
+import const
 from rpi_ws281x import PixelStrip, Color
 import led_strip # from led_strip.py
-
+import const
 
 stop_motors = False # Flag for stopping motors at collision
 stop_threads = False # Flag for stopping all threads
@@ -52,7 +52,7 @@ def run_LedStrip():
 # Functions defined for each motor thread
 def run_MRotate():
     print("M_Rot state: {}".format(not stop_motors))
-    M_Rot.SetMicroStep('software','1/4step')
+    M_Rot.SetMicroStep('software',const.ROT_RESOLUTION)
     rot_delay = 0.0015
     forward_steps = 500
     backward_steps = 200
@@ -66,7 +66,7 @@ def run_MRotate():
 
 
 def run_MLinear(num_steps, delay):
-    M_Lin.SetMicroStep('software','1/4step')
+    M_Lin.SetMicroStep('software',const.LIN_RESOLUTION)
 
     if num_steps > 0:
         M_Lin.TurnStep(Dir='forward', steps=num_steps, stepdelay=delay)
@@ -155,7 +155,7 @@ End_stops = threading.Thread(target=check_collision)
 
 def main():
     # Sand Table hardware constants
-    rev_steps = 3200
+    rev_steps = const.STEPS_PER_REV
 
     currentTheta = 0 # Theta coordinate val - currently just an incrementer
     theta_steps = 100

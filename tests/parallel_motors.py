@@ -2,7 +2,7 @@ import RPi.GPIO as GPIO
 from utils.DRV8825 import DRV8825
 import threading
 from time import sleep
-
+import const
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(23, GPIO.OUT)
@@ -51,8 +51,8 @@ try:
     for d in delays:
         print("Delays: {}".format(d))
 
-        MRot = threading.Thread(target=motors.run_MRot, args=(d, '1/4step',))
-        MLin = threading.Thread(target=motors.run_MLin, args=(d, '1/4step',))
+        MRot = threading.Thread(target=motors.run_MRot, args=(d, const.ROT_RESOLUTION,))
+        MLin = threading.Thread(target=motors.run_MLin, args=(d, const.LIN_RESOLUTION,))
 
         print("...")
         MRot.start()

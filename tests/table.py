@@ -4,6 +4,7 @@ import threading
 import math
 from time import sleep
 import keyboard
+import const
 
 from os import listdir
 from os.path import isfile, join
@@ -14,22 +15,22 @@ M_Lin = DRV8825(dir_pin=24, step_pin=18, enable_pin=4, mode_pins=(21, 22, 27))
 isStillMoving = False #flag that motors are to be moving
 
 def run_MRotate(stop_event):
-    M_Rot.SetMicroStep('software','1/4step')
+    M_Rot.SetMicroStep('software',const.ROT_RESOLUTION)
     rot_delay = 0.0015
-    rot_steps = 3200
+    rot_steps = const.STEPS_PER_REV
     while isStillMoving:
         M_Rot.TurnStep_ROT(Dir='forward', steps=rot_steps, stepdelay = rot_delay)
     M_Rot.Stop()
 
 def run_MLinear(num_steps, delay, stop_event):
-    M_Lin.SetMicroStep('software','1/4step')
+    M_Lin.SetMicroStep('software',const.LIN_RESOLUTION)
     if num_steps > 0:
         M_Lin.TurnStep(stop_event, Dir='forward', steps=num_steps, stepdelay = delay)
     else:
         M_Lin.TurnStep(stop_event, Dir='backward', steps=abs(num_steps), stepdelay = delay)
 
 def run_MLin(num_steps, delay, stop_event):
-    M_Lin.SetMicroStep('software','1/4step')
+    M_Lin.SetMicroStep('software',const.LIN_RESOLUTION)
     if num_steps > 0:
         M_Lin.TurnStep(stop_event, Dir='forward', steps=num_steps, stepdelay = delay)
     else:
@@ -90,7 +91,7 @@ def stop_program(threading_event):
 
 default_speed = 750
 max_speed = 1000
-rev_steps = 3200
+rev_steps = const.STEPS_PER_REV
 currentTheta = 0 # theta coordinate val - currently just incrementer
 theta_steps = 100
 LinPos = 0
