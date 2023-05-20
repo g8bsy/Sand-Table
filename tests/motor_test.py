@@ -40,8 +40,8 @@ step_sizes = ['halfstep', '1/4step', '1/8step', '1/16step']
 try:
     print("\n---------- Running M_Rot ----------")
     run_MRot()
-#    print("\n---------- Running M_Lin ----------")
-#    run_MLin()
+    print("\n---------- Running M_Lin ----------")
+    run_MLin()
 except KeyboardInterrupt:
     print("\nMotors stopped")
     M_Rot.stop()

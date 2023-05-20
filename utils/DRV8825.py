@@ -26,11 +26,15 @@ class DRV8825():
         self.running = True
 
         GPIO.setmode(GPIO.BCM)
-        GPIO.setwarnings(False)
+        GPIO.setwarnings(True)
         GPIO.setup(self.dir_pin, GPIO.OUT)
+        GPIO.setup(self.dir_pin, 0)
         GPIO.setup(self.step_pin, GPIO.OUT)
+        GPIO.setup(self.step_pin, 0)
         GPIO.setup(self.enable_pin, GPIO.OUT)
+        GPIO.setup(self.enable_pin, 0)
         GPIO.setup(self.mode_pins, GPIO.OUT)
+        GPIO.setup(self.mode_pins, 0)
 
 
     def digital_write(self, pin, value):
@@ -51,7 +55,7 @@ class DRV8825():
             ('fullstep', 'halfstep', '1/4step', '1/8step', '1/16step', '1/32step')
         """
         microstep = {'halfstep': (1, 0),
-                     '1/4step': (0, 1),
+                     '1/4step': (0,1),
                      '1/8step': (0, 0),
                      '1/16step': (1, 1)}
 
@@ -80,6 +84,8 @@ class DRV8825():
 
         # print("turn step: ",steps)
         while steps > 0 and self.running:
+            self.digital_write(self.step_pin, False)
+            time.sleep(PULSE_WIDTH)
             self.digital_write(self.step_pin, True)
             time.sleep(PULSE_WIDTH)
             self.digital_write(self.step_pin, False)
