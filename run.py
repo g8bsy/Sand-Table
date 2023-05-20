@@ -5,6 +5,7 @@ import math
 from time import sleep
 from random import shuffle
 from subprocess import call
+import const
 
 from rpi_ws281x import PixelStrip, Color
 from led_strip import *
@@ -18,8 +19,8 @@ M_Rot = DRV8825(dir_pin=13, step_pin=19, enable_pin=12, mode_pins=(16, 17))
 M_Lin = DRV8825(dir_pin=24, step_pin=18, enable_pin=4, mode_pins=(21, 22))
 
 # Setting microstep size to 1/8
-M_Rot.set_microstep('software','1/4step')
-M_Lin.set_microstep('software','1/4step')
+M_Rot.set_microstep('software',const.ROT_RESOLUTION)
+M_Lin.set_microstep('software',const.LIN_RESOLUTION)
 
 # Create NeoPixel object with appropriate configuration.
 # strip = strip_init()
@@ -157,7 +158,7 @@ def erase_out_to_in():
 
     sleep(.5)
     MRot = threading.Thread(target=run_MRot_until, args=('forward', 0.0005,))
-    MLin = threading.Thread(target=run_MLin_until, args=(-max_disp, 0.01,))
+    MLin = threading.Thread(target=run_MLin_until, args=(-max_disp, 0.001,))
 
     print("Erasing...")
     MRot.start()
