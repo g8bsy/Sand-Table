@@ -110,6 +110,8 @@ class DRV8825():
         
         pos = 0
         while GPIO.input(limit_switch) == 1 and self.running:
+            self.digital_write(self.step_pin, False)
+            time.sleep(PULSE_WIDTH)
             self.digital_write(self.step_pin, True)
             time.sleep(PULSE_WIDTH)
             self.digital_write(self.step_pin, False)
@@ -144,6 +146,8 @@ class DRV8825():
         while steps > 0 and self.running:
             if GPIO.input(limit_switch) == 0:
                 return False
+            self.digital_write(self.step_pin, False)
+            time.sleep(PULSE_WIDTH)
             self.digital_write(self.step_pin, True)
             time.sleep(PULSE_WIDTH)
             self.digital_write(self.step_pin, False)
