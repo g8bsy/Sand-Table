@@ -66,6 +66,7 @@ class DRV8825():
 
 
     def turn_steps(self, Dir, steps, stepdelay):
+        print("turn_steps")
         if (Dir == MotorDir[0]):
             # print("forward")
             self.digital_write(self.enable_pin, 0)
@@ -82,7 +83,8 @@ class DRV8825():
         if (steps == 0):
             return
 
-        # print("turn step: ",steps)
+        print("turn step: ",steps)
+        print("delay: ",stepdelay)
         while steps > 0 and self.running:
             self.digital_write(self.step_pin, False)
             time.sleep(PULSE_WIDTH)
@@ -94,6 +96,7 @@ class DRV8825():
 
 
     def turn_until_switch(self, Dir, limit_switch, stepdelay):
+        print("turn_until_switch")
         if (Dir == MotorDir[0]):
             print("forward")
             self.digital_write(self.enable_pin, 0)
@@ -107,7 +110,8 @@ class DRV8825():
             self.digital_write(self.enable_pin, 1)
             return
 
-        
+        print("turn step: ",steps)
+        print("delay: ",stepdelay)
         pos = 0
         while GPIO.input(limit_switch) == 1 and self.running:
             self.digital_write(self.step_pin, False)
@@ -125,6 +129,7 @@ class DRV8825():
             return -1*pos
 
     def turn_check_cali(self, Dir, steps, limit_switch, stepdelay):
+        print("turn_check_cali")
         if (Dir == MotorDir[0]):
             print("forward")
             self.digital_write(self.enable_pin, 0)
