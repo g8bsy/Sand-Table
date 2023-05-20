@@ -149,7 +149,9 @@ def erase_out_to_in():
     M_Lin.running = True
 
     sleep(1)
+    print("Turn until outer_switch")
     M_Lin.turn_until_switch(Dir='forward', limit_switch=outer_switch, stepdelay=0.0002)
+    print("Go to outer edge")
     M_Lin.turn_steps(Dir='backward', steps=outer_to_max, stepdelay=0.0002)
     print("Found edge")
 
