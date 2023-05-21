@@ -58,6 +58,11 @@ class DRV8825():
                      '1/4step': (0,1),
                      '1/8step': (0, 0),
                      '1/16step': (1, 1)}
+        
+        # microstep = {'halfstep': (1, 0),
+        #              '1/4step': (0,1),
+        #              'fullstep': (0, 0),
+        #              '1/16step': (1, 1)}
 
         print("Control mode: ",mode)
         if (mode == ControlMode[1]):
@@ -86,9 +91,7 @@ class DRV8825():
         print("turn step: ",steps)
         print("delay: ",stepdelay)
         while steps > 0 and self.running:
-            self.digital_write(self.step_pin, False)
-            time.sleep(PULSE_WIDTH)
-            self.digital_write(self.step_pin, True)
+            self.digital_write(self.step_pin, GPIO.HIGH)
             time.sleep(PULSE_WIDTH)
             self.digital_write(self.step_pin, False)
             time.sleep(stepdelay)
@@ -114,9 +117,7 @@ class DRV8825():
         print("delay: ",stepdelay)
         pos = 0
         while GPIO.input(limit_switch) == 1 and self.running:
-            self.digital_write(self.step_pin, False)
-            time.sleep(PULSE_WIDTH)
-            self.digital_write(self.step_pin, True)
+            self.digital_write(self.step_pin, GPIO.HIGH)
             time.sleep(PULSE_WIDTH)
             self.digital_write(self.step_pin, False)
             time.sleep(stepdelay)
@@ -151,9 +152,7 @@ class DRV8825():
         while steps > 0 and self.running:
             if GPIO.input(limit_switch) == 0:
                 return False
-            self.digital_write(self.step_pin, False)
-            time.sleep(PULSE_WIDTH)
-            self.digital_write(self.step_pin, True)
+            self.digital_write(self.step_pin, GPIO.HIGH)
             time.sleep(PULSE_WIDTH)
             self.digital_write(self.step_pin, False)
             time.sleep(stepdelay)

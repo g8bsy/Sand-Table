@@ -7,27 +7,27 @@ import sys
 
 M_Rot = DRV8825(dir_pin=24, step_pin=18, enable_pin=4, mode_pins=(21, 22))
 
-def run_MRot(steps, delay):
-    print("\nDelay: {}".format(delay))
-    M_Rot.set_microstep('software', const.LIN_RESOLUTION)
-    print("Step size: {}".format(const.LIN_RESOLUTION))
-
-    M_Rot.turn_steps(Dir='forward', steps=steps, stepdelay=delay)
-    sleep(2)
-    M_Rot.turn_steps(Dir='backward', steps=steps, stepdelay=delay)
-    sleep(2)
+def run_MRot(steps):
+    for resolution in resolutions:
+        for delay in delays:
+            print("Delay: {}, Resolution:{}, Steps:{}".format(delay, resolution, steps))
+            M_Rot.set_microstep('software', resolution)
+            sleep(0.2)
+            print("Resolution: {}".format(resolution))
+            M_Rot.turn_steps(Dir='forward', steps=steps, stepdelay=delay)
+            M_Rot.turn_steps(Dir='backward', steps=steps, stepdelay=delay)
 
     M_Rot.stop()
 
 
-delays = [0.0002]
+delays = [0.0002, 0.002, 0.02, 0.2]
+resolutions = ['halfstep', '1/4step', '1/8step', '1/16step']
 
 
 try:
     steps = int(sys.argv[1])
-    delay = int(sys.argv[2])/1000.0
-    print("steps="+str(steps) + " delay=" + str(delay))
-    run_MRot(steps, delay)
+    print("steps="+str(steps))
+    run_MRot(steps)
 except KeyboardInterrupt:
     print("\nMotors stopped")
     M_Rot.stop()

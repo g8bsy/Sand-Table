@@ -36,7 +36,7 @@ main_button = 26
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(outer_switch, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(inner_switch, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(main_button, GPIO.IN)
+GPIO.setup(main_button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(motor_relay, GPIO.OUT)
 GPIO.setup(led_relay, GPIO.OUT)
 
@@ -220,15 +220,15 @@ def ask_for_erase():
     while interface.ask_erase:
         sleep(.1)
 
-        if not interface.main_pressed and GPIO.input(main_button) == 1:
+        if not interface.main_pressed and GPIO.input(main_button) == 0:
             interface.main_pressed = True
             interface.main_start_time = int(round(time.time() * 1000))
 
         if interface.main_pressed:
-            if GPIO.input(main_button) == 0 and int(round(time.time() * 1000)) - interface.main_start_time > 1000:
+            if GPIO.input(main_button) == 1 and int(round(time.time() * 1000)) - interface.main_start_time > 1000:
                 interface.main_pressed = False
                 interface.ask_erase = False
-            elif GPIO.input(main_button) == 0:
+            elif GPIO.input(main_button) == 1:
                 interface.main_pressed = False
                 yes_or_no = not yes_or_no
                 changed = True
@@ -278,7 +278,7 @@ class InterfaceThread():
             sleep(.1)
 
             if not self.ask_erase:
-                if not self.main_pressed and GPIO.input(main_button) == 1:
+                if not self.main_pressed and GPIO.input(main_button) == 0:
                     self.main_pressed = True
                     self.main_start_time = int(round(time.time() * 1000))
 
@@ -290,16 +290,16 @@ class InterfaceThread():
                     #     print("Shutdown!")
                     #     # stop_motors()
 
-                    if GPIO.input(main_button) == 0:
+                    if GPIO.input(main_button) == 1:
                         self.main_pressed = False
                         self.displaying_options = True
                         self.display_options()
 
                 if self.displaying_options and self.main_pressed:
-                    if GPIO.input(main_button) == 0 and int(round(time.time() * 1000)) - self.main_start_time > 1000:
+                    if GPIO.input(main_button) == 1 and int(round(time.time() * 1000)) - self.main_start_time > 1000:
                         self.main_pressed = False
                         self.select_option()
-                    elif GPIO.input(main_button) == 0:
+                    elif GPIO.input(main_button) == 1:
                         self.main_pressed = False
                         self.selected_option = (self.selected_option + 1) % 3
                         self.display_options()

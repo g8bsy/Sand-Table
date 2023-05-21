@@ -5,7 +5,7 @@ import time
 
 main_button = 26
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(main_button, GPIO.IN)
+GPIO.setup(main_button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 lcd_display = lcd()
 
@@ -30,7 +30,7 @@ class InterfaceThread():
         while self.running:
             sleep(.1)
 
-            if not self.main_pressed and GPIO.input(main_button) == 1:
+            if not self.main_pressed and GPIO.input(main_button) == 0:
                 self.main_pressed = True
                 self.main_start_time = int(round(time.time() * 1000))
 
@@ -42,16 +42,16 @@ class InterfaceThread():
                 #     print("Shutdown!")
                 #     # stop_motors()
 
-                if GPIO.input(main_button) == 0:
+                if GPIO.input(main_button) == 1:
                     self.main_pressed = False
                     self.displaying_options = True
                     self.display_options()
 
             if self.displaying_options and self.main_pressed:
-                if GPIO.input(main_button) == 0 and int(round(time.time() * 1000)) - self.main_start_time > 2000:
+                if GPIO.input(main_button) == 1 and int(round(time.time() * 1000)) - self.main_start_time > 2000:
                     self.main_pressed = False
                     self.select_option()
-                elif GPIO.input(main_button) == 0:
+                elif GPIO.input(main_button) == 1:
                     self.main_pressed = False
                     self.selected_option = (self.selected_option + 1) % 3
                     self.display_options()
