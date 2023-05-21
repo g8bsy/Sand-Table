@@ -54,10 +54,10 @@ class DRV8825():
         (2) stepformat
             ('fullstep', 'halfstep', '1/4step', '1/8step', '1/16step', '1/32step')
         """
-        microstep = {'halfstep': (1, 0),
-                     '1/4step': (0,1),
-                     '1/8step': (0, 0),
-                     '1/16step': (1, 1)}
+        microstep = {'halfstep': (1, 0, 1),
+                     '1/4step': (0,1, 1),
+                     '1/8step': (0, 0, 1),
+                     '1/16step': (1, 1, 1)}
         
         # microstep = {'halfstep': (1, 0),
         #              '1/4step': (0,1),
