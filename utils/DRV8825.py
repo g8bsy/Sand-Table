@@ -32,7 +32,7 @@ class DRV8825():
         GPIO.setup(self.step_pin, GPIO.OUT)
         GPIO.setup(self.step_pin, 0)
         GPIO.setup(self.enable_pin, GPIO.OUT)
-        GPIO.setup(self.enable_pin, 0)
+        GPIO.setup(self.enable_pin, 1)
         GPIO.setup(self.mode_pins, GPIO.OUT)
         GPIO.setup(self.mode_pins, 0)
 

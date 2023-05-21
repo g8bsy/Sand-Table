@@ -4,7 +4,7 @@ import threading
 from time import sleep
 
 M_Rot = DRV8825(dir_pin=5, step_pin=6, enable_pin=21, mode_pins=(20, 19, 13))
-M_Lin = DRV8825(dir_pin=24, step_pin=25, enable_pin=11, mode_pins=(21, 22, 12))
+M_Lin = DRV8825(dir_pin=24, step_pin=25, enable_pin=11, mode_pins=(10, 14, 12))
 
 def run_MRot():
     for delay in delays:
