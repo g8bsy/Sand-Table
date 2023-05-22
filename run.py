@@ -483,7 +483,7 @@ def main():
                 interface.currently_displayed.clear()
                 interface.currently_displayed.extend((("Reading file....", 2, 0), (f, 3, 0)))
 
-                track = read_track(f, Dir="/home/gabrielp/Sand-Table/")
+                track = read_track(f, Dir="/home/gabrielp/Sand-Table/", max_disp=max_disp)
 
                 if not interface.displaying_options:
                     lcd_display.lcd_clear()

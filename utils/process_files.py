@@ -107,8 +107,8 @@ def write_tracks(tracks, Dir="", max_disp=2000):
     print("\nFiles processed!\n")
 
 
-def read_track(filename, Dir=""):
-    with open(Dir + processed_folder + filename, "r") as f:
+def read_track(filename, Dir="", max_disp=2000):
+    with open(Dir + get_processed_folder(max_disp) + filename, "r") as f:
         content = f.readlines()
 
     lines = [line.rstrip('\n') for line in content]
