@@ -10,7 +10,7 @@ import const
 from rpi_ws281x import PixelStrip, Color
 from led_strip import *
 
-from utils.process_files import get_files, process_new_files, read_track, get_max_disp
+from utils.process_files import get_files, process_new_files, read_track
 from utils.i2c_lcd_driver import *
 
 from motors import M_Lin, M_Rot
@@ -136,7 +136,7 @@ def calibrate_slide():
     return totalDist
 
 
-def erase_out_to_in():
+def erase_out_to_in(max_disp):
     if not interface.displaying_options:
         lcd_display.lcd_clear()
         lcd_display.lcd_display_string("Erasing Drawing!", 2, 2)
@@ -410,8 +410,7 @@ interface_thread = threading.Thread(target=interface.check_all_switches)
 lcd_display = lcd()
 
 def main():
-    global max_disp
-
+    
     try:
         lcd_display.backlight(1)
 
@@ -438,7 +437,7 @@ def main():
 
         max_disp = calibrate_slide()
 
-        process_new_files(Dir="/home/gabrielp/Sand-Table/")
+        process_new_files(Dir="/home/gabrielp/Sand-Table/", max_disp=max_disp)
 
         # files = get_files(Dir="/home/gabrielp/Sand-Table/")
         with open("/home/gabrielp/Sand-Table/filenames.txt", "r") as f:
@@ -470,7 +469,7 @@ def main():
                         interface.next_drawing = False
                         interface.erase = False
 
-                    erase_out_to_in()
+                    erase_out_to_in(max_disp)
 
                     if interface.stop_program:
                         break
