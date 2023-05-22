@@ -1,11 +1,9 @@
 import RPi.GPIO as GPIO
 from utils.DRV8825 import DRV8825
-import threading
-import const
 from time import sleep
 import sys
 
-from const import M_Lin, M_Rot
+from motors import M_Lin, M_Rot
 
 def run_MLin(steps):
     for resolution in resolutions:
