@@ -1,5 +1,5 @@
 import RPi.GPIO as GPIO
-from DRV8825 import DRV8825
+from utils.DRV8825 import DRV8825
 import threading
 import math
 from time import sleep
@@ -9,8 +9,7 @@ import const
 from os import listdir
 from os.path import isfile, join
 
-M_Rot = DRV8825(dir_pin=13, step_pin=19, enable_pin=12, mode_pins=(16, 17, 20))
-M_Lin = DRV8825(dir_pin=24, step_pin=18, enable_pin=4, mode_pins=(21, 22, 27))
+from const import M_Lin, M_Rot
 
 isStillMoving = False #flag that motors are to be moving
 
@@ -42,8 +41,8 @@ def calibrate_slide():
     inner_switch = 6
 
     GPIO.setmode(GPIO.BCM)
-    GPIO.setup(outer_switch, GPIO.IN)
-    GPIO.setup(inner_switch, GPIO.IN)
+    GPIO.setup(outer_switch, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.setup(inner_switch, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
     delay = 1 / 1000
     center_to_min = 20

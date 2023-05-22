@@ -12,8 +12,7 @@ stop_motors = False # Flag for stopping motors at collision
 stop_threads = False # Flag for stopping all threads
 
 # Motor driver object init
-M_Rot = DRV8825(dir_pin=13, step_pin=19, enable_pin=12, mode_pins=(16, 17, 20), stop_event=False)
-M_Lin = DRV8825(dir_pin=24, step_pin=18, enable_pin=4, mode_pins=(21, 22, 27), stop_event=False)
+from const import M_Lin, M_Rot
 
 # Create NeoPixel object with appropriate configuration.
 strip = led_strip.strip_init()
@@ -23,8 +22,8 @@ outer_switch = 5
 inner_switch = 6
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(outer_switch, GPIO.IN)
-GPIO.setup(inner_switch, GPIO.IN)
+GPIO.setup(outer_switch, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(inner_switch, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 
 # Run through the LED strip routine
