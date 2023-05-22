@@ -1,7 +1,7 @@
 
 STEPS_PER_REV=4000
-ROT_RESOLUTION="halfstep"
-LIN_RESOLUTION="1/4step"
+ROT_RESOLUTION="1/4step"
+LIN_RESOLUTION="1/8step"
 MICROSTEP_SIZE = {'halfstep': 1,
                       '1/4step': 4,
                       '1/8step': 8,

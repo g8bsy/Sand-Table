@@ -26,13 +26,9 @@ class DRV8825():
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(True)
         GPIO.setup(self.dir_pin, GPIO.OUT)
-        GPIO.setup(self.dir_pin, 0)
         GPIO.setup(self.step_pin, GPIO.OUT)
-        GPIO.setup(self.step_pin, 0)
         GPIO.setup(self.enable_pin, GPIO.OUT)
-        GPIO.setup(self.enable_pin, 1)
         GPIO.setup(self.mode_pins, GPIO.OUT)
-        GPIO.setup(self.mode_pins, 0)
 
 
     def digital_write(self, pin, value):
@@ -111,7 +107,6 @@ class DRV8825():
             self.digital_write(self.enable_pin, 1)
             return
 
-        print("turn step: ",steps)
         print("delay: ",stepdelay)
         pos = 0
         while GPIO.input(limit_switch) == 1 and self.running:

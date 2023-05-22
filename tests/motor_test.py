@@ -34,7 +34,7 @@ def run_MLin():
     M_Lin.stop()
 
 delays = [0.0002]
-step_sizes = ['halfstep', '1/4step', '1/8step', '1/16step']
+step_sizes = ['1/8step', '1/16step']
 
 try:
     print("\n---------- Running M_Rot ----------")

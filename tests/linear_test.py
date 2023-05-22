@@ -2,7 +2,7 @@ import RPi.GPIO as GPIO
 from utils.DRV8825 import DRV8825
 from time import sleep
 import sys
-
+import const
 from motors import M_Lin, M_Rot
 
 def run_MLin(steps):

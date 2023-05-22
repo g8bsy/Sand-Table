@@ -6,4 +6,5 @@ GPIO.setup(const.INNER_SWITCH_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(const.OUTER_SWITCH_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 while True:
+    time.sleep(0.2)
     print("Outer:"+str(GPIO.input(const.OUTER_SWITCH_PIN)) + " - Inner:" + str(GPIO.input(const.INNER_SWITCH_PIN)))
