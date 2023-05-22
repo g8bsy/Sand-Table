@@ -5,10 +5,9 @@ from time import sleep
 import const
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(23, GPIO.OUT)
+GPIO.setup(const.MOTOR_RELAY_PIN, GPIO.OUT)
 
-M_Rot = DRV8825(dir_pin=13, step_pin=19, enable_pin=12, mode_pins=(16, 17, 20))
-M_Lin = DRV8825(dir_pin=24, step_pin=18, enable_pin=4, mode_pins=(21, 22, 27))
+from motors import M_Lin, M_Rot
 
 
 class MotorThreads:
@@ -46,7 +45,7 @@ class MotorThreads:
 delays = [0.0001, 0.0002]
 
 try:
-    GPIO.output(23, GPIO.LOW)
+    GPIO.output(const.MOTOR_RELAY_PIN, GPIO.LOW)
     motors = MotorThreads()
     for d in delays:
         print("Delays: {}".format(d))

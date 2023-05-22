@@ -1,7 +1,5 @@
 import RPi.GPIO as GPIO
 import time
-from const import PULSE_WIDTH
-
 
 MotorDir = [
     'forward',

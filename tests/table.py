@@ -9,7 +9,7 @@ import const
 from os import listdir
 from os.path import isfile, join
 
-from const import M_Lin, M_Rot
+from motors import M_Lin, M_Rot
 
 isStillMoving = False #flag that motors are to be moving
 

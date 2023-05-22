@@ -5,7 +5,7 @@ import const
 from time import sleep
 import sys
 
-M_Rot = DRV8825(dir_pin=13, step_pin=19, enable_pin=12, mode_pins=(16, 17))
+from motors import M_Rot
 
 def run_MRot(steps, delay):
     print("\nDelay: {}".format(delay))

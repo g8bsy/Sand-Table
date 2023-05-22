@@ -12,7 +12,7 @@ stop_motors = False # Flag for stopping motors at collision
 stop_threads = False # Flag for stopping all threads
 
 # Motor driver object init
-from const import M_Lin, M_Rot
+from motors import M_Lin, M_Rot
 
 # Create NeoPixel object with appropriate configuration.
 strip = led_strip.strip_init()

@@ -2,9 +2,9 @@ import RPi.GPIO as GPIO
 from utils.DRV8825 import DRV8825
 import threading
 from time import sleep
+import const
 
-M_Rot = DRV8825(dir_pin=5, step_pin=6, enable_pin=21, mode_pins=(20, 19, 13))
-M_Lin = DRV8825(dir_pin=24, step_pin=25, enable_pin=7, mode_pins=(8, 11, 10))
+from motors import M_Lin, M_Rot
 
 def run_MRot():
     for delay in delays:

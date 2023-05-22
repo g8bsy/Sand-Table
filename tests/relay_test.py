@@ -1,22 +1,23 @@
 import RPi.GPIO as GPIO
 from time import sleep
+import const
 
 GPIO.setmode(GPIO.BOARD)
-GPIO.setup(16, GPIO.OUT)
-GPIO.setup(22, GPIO.OUT)
+GPIO.setup(const.MOTOR_RELAY_PIN, GPIO.OUT)
+GPIO.setup(const.LED_RELAY_PIN, GPIO.OUT)
 
-GPIO.output(16, GPIO.LOW)
+GPIO.output(const.MOTOR_RELAY_PIN, GPIO.LOW)
 print("Motors ON")
 sleep(2)
-GPIO.output(16, GPIO.HIGH)
+GPIO.output(const.MOTOR_RELAY_PIN, GPIO.HIGH)
 print("Motors OFF")
 
 sleep(1)
 
-GPIO.output(22, GPIO.LOW)
+GPIO.output(const.LED_RELAY_PIN, GPIO.LOW)
 print("LEDs ON")
 sleep(2)
-GPIO.output(22, GPIO.HIGH)
+GPIO.output(const.LED_RELAY_PIN, GPIO.HIGH)
 print("LEDs OFF")
 
 GPIO.cleanup()

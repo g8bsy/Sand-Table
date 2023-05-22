@@ -14,9 +14,8 @@ from utils.process_files import get_files, process_new_files, read_track, get_ma
 from utils.i2c_lcd_driver import *
 
 
-# Motor driver object init
-M_Rot = DRV8825(dir_pin=13, step_pin=19, enable_pin=12, mode_pins=(16, 17))
-M_Lin = DRV8825(dir_pin=24, step_pin=18, enable_pin=4, mode_pins=(21, 22))
+
+
 
 # Setting microstep size to 1/8
 M_Rot.set_microstep('software',const.ROT_RESOLUTION)
@@ -27,11 +26,11 @@ M_Lin.set_microstep('software',const.LIN_RESOLUTION)
 # strip_thread = LedStripThread()
 
 # Setup for limit switches
-outer_switch = 5
-inner_switch = 6
-motor_relay = 23
-led_relay = 25
-main_button = 26
+outer_switch = const.OUTER_SWITCH_PIN
+inner_switch = const.INNER_SWITCH_PIN
+motor_relay = const.MOTOR_RELAY_PIN
+led_relay = const.LED_RELAY_PIN
+main_button = const.BUTTON_PIN
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(outer_switch, GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -158,7 +157,7 @@ def erase_out_to_in():
 
     sleep(.5)
     MRot = threading.Thread(target=run_MRot_until, args=('forward', 0.0005,))
-    MLin = threading.Thread(target=run_MLin_until, args=(-max_disp, 0.001,))
+    MLin = threading.Thread(target=run_MLin_until, args=(-max_disp, 0.01,))
 
     print("Erasing...")
     MRot.start()

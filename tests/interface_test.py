@@ -1,9 +1,9 @@
 import RPi.GPIO as GPIO
 from utils.i2c_lcd_driver import *
 import time
+import const
 
-
-main_button = 26
+main_button = const.BUTTON_PIN
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(main_button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 

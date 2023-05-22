@@ -1,15 +1,17 @@
 import numpy as np
 
-from os import listdir
+from os import listdir, makedirs, path
 from os.path import isfile, join
 import const
 
-microstep_size = 4
-max_disp = 7300
+max_disp = 2000
 
 pending_folder = "pending/"
-processed_folder = "processed/"
-
+processed_folder = "processed/max_disp=" + str(max_disp) + "/STEPS_PER_REV=" + str(const.STEPS_PER_REV) + "/MICROSTEP_SIZE=" + str(const.MICROSTEP_SIZE) +  "/LIN_RESOLUTION=" + const.LIN_RESOLUTION.replace("/", "_") + "/ROT_RESOLUTION=" + const.ROT_RESOLUTION.replace("/", "_") + "/"
+isExist = path.exists(processed_folder)
+if not isExist:
+   # Create a new directory because it does not exist
+   makedirs(processed_folder)
 
 def get_max_disp():
     return max_disp
@@ -35,7 +37,7 @@ def get_coors(filename, folder):
         r = float(c[1])
 
         if (theta != 0 or r != 0):
-            theta = int(microstep_size * const.STEPS_PER_REV * theta / 6.28318531)
+            theta = int(const.MICROSTEP_SIZE * const.STEPS_PER_REV * theta / 6.28318531)
             r = int(max_disp * r)
             coors = np.vstack((coors, [theta, r]))
 
@@ -99,6 +101,7 @@ def process_new_files(Dir=""):
 
 def write_tracks(tracks, Dir=""):
     for name in tracks:
+        print("Writing " + Dir + processed_folder + name)
         current_file = open(Dir + processed_folder + name, "w+")
         for line in tracks[name]:
             current_file.write("{} {} {} {}\n".format(int(line[0]), int(line[1]), line[2], line[3]))
