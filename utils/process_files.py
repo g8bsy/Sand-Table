@@ -93,13 +93,13 @@ def process_new_files(Dir="", max_disp=2000):
             steps_with_delays = add_delays(get_steps(f, Dir + pending_folder, max_disp))
             tracks.update({f: steps_with_delays})
 
-        write_tracks(tracks, Dir=Dir)
+        write_tracks(tracks, Dir, max_disp)
 
 
-def write_tracks(tracks, Dir=""):
+def write_tracks(tracks, Dir="", max_disp=2000):
     for name in tracks:
-        print("Writing " + Dir + processed_folder + name)
-        current_file = open(Dir + processed_folder + name, "w+")
+        print("Writing " + Dir + get_processed_folder(max_disp) + name)
+        current_file = open(Dir + get_processed_folder(max_disp) + name, "w+")
         for line in tracks[name]:
             current_file.write("{} {} {} {}\n".format(int(line[0]), int(line[1]), line[2], line[3]))
         current_file.close()
