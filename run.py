@@ -427,14 +427,6 @@ def main():
         interface.currently_displayed.clear()
         interface.currently_displayed.extend((("....", 2, 8)))
 
-        process_new_files(Dir="/home/gabrielp/Sand-Table/")
-
-        # files = get_files(Dir="/home/gabrielp/Sand-Table/")
-        with open("/home/gabrielp/Sand-Table/filenames.txt", "r") as f:
-            content = f.readlines()
-        files = [line.rstrip('\n') for line in content]
-        shuffle(files)
-
         interface_thread.start()
 
         if not interface.displaying_options:
@@ -445,6 +437,14 @@ def main():
         interface.currently_displayed.extend((("Calibrating slide!", 2, 1), (None)))
 
         max_disp = calibrate_slide()
+
+        process_new_files(Dir="/home/gabrielp/Sand-Table/")
+
+        # files = get_files(Dir="/home/gabrielp/Sand-Table/")
+        with open("/home/gabrielp/Sand-Table/filenames.txt", "r") as f:
+            content = f.readlines()
+        files = [line.rstrip('\n') for line in content]
+        shuffle(files)
 
         if not interface.displaying_options:
             lcd_display.lcd_clear()
