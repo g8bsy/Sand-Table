@@ -21,7 +21,7 @@ def get_files(Dir="", folder=pending_folder):
     return onlyfiles
 
 
-def get_coors(filename, folder):
+def get_coors(filename, folder, max_disp):
     with open(folder + filename, "r") as f:
         content = f.readlines()
 
@@ -44,8 +44,8 @@ def get_coors(filename, folder):
     return coors
 
 
-def get_steps(filename, folder):
-    coors = get_coors(filename, folder)
+def get_steps(filename, folder, max_disp):
+    coors = get_coors(filename, folder, max_disp)
 
     return coors_to_steps(coors)
 
@@ -90,7 +90,7 @@ def process_new_files(Dir="", max_disp=2000):
         tracks = {}
 
         for f in new_files:
-            steps_with_delays = add_delays(get_steps(f, Dir + pending_folder))
+            steps_with_delays = add_delays(get_steps(f, Dir + pending_folder, max_disp))
             tracks.update({f: steps_with_delays})
 
         write_tracks(tracks, Dir=Dir)
