@@ -1,7 +1,6 @@
 import RPi.GPIO as GPIO
 from utils.DRV8825 import DRV8825
 import threading
-import math
 from time import sleep
 from random import shuffle
 from subprocess import call
