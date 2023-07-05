@@ -6,21 +6,22 @@
 #include <string.h>
 #include <pthread.h>
 #include "pthread_barrier.c"
-
 #include "vec.c"
+#include "bcm2835.h"
 
 #ifdef __APPLE__
 int bcm2835_init(void) { return 1; }
 void bcm2835_gpio_write(uint8_t pin, uint8_t on) {}
 void bcm2835_gpio_fsel(uint8_t pin, uint8_t mode) {}
 uint8_t bcm2835_gpio_lev(uint8_t pin) {}
+void bcm2835_gpio_set_pud(uint8_t pin, uint8_t pud) {}
 int BCM2835_GPIO_FSEL_OUTP = 0b001;
 int BCM2835_GPIO_FSEL_INPT = 0b000;
 #define HIGH 0x1
 #define LOW 0x0
 
 #else
-#include "bcm2835.c"
+
 #endif
 
 pthread_mutex_t running_mutex;
@@ -28,6 +29,10 @@ volatile bool is_running = false;
 int rot_dir_pin = 0, rot_step_pin = 0, rot_en_pin = 0, lin_dir_pin = 0, lin_step_pin = 0, lin_en_pin = 0, outer_limit_pin = 0, inner_limit_pin = 0;
 
 int rot_pos = -1, lin_pos = -1, inner_to_center = -1, outer_to_max = -1;
+
+#define CLK_SPEED 1000
+#define CLK_PULSE 400
+#define CLK_PAUSE 100
 
 struct MotorMovement
 {
@@ -94,8 +99,8 @@ MotorMovements *load_file(char *fname)
 
     rot->steps = atoi(strtok(line, " "));
     lin->steps = atoi(strtok(NULL, " "));
-    rot->delay = (int)(atof(strtok(NULL, " ")) * 1000000000);
-    lin->delay = (int)(atof(strtok(NULL, " ")) * 1000000000);
+    rot->delay = (int)(atof(strtok(NULL, " ")) * 1000000);
+    lin->delay = (int)(atof(strtok(NULL, " ")) * 1000000);
 
     MotorMovements *this_move = malloc(sizeof(MotorMovements));
 
@@ -111,14 +116,61 @@ MotorMovements *load_file(char *fname)
   return moves;
 }
 
-int is_at_limit(){
-    if(bcm2835_gpio_lev(outer_limit_pin) == 1){
-      return 1;
+int is_at_limit()
+{
+  if (bcm2835_gpio_lev(outer_limit_pin) == 1)
+  {
+    return 1;
+  }
+  if (bcm2835_gpio_lev(inner_limit_pin) == 1)
+  {
+    return -1;
+  }
+  return 0;
+}
+
+int steps_with_delay(MotorMovements moves)
+{
+
+  bcm2835_gpio_write(rot_dir_pin, moves.rot.steps > 0 ? HIGH : LOW);
+  bcm2835_gpio_write(lin_dir_pin, moves.lin.steps > 0 ? HIGH : LOW);
+
+  int max = abs(moves.rot.steps) > abs(moves.rot.steps) ? abs(moves.rot.steps) : abs(moves.rot.steps);
+
+  int rot_count = moves.rot.delay;
+  int lin_count = moves.lin.delay;
+
+  int clk_count = 0;
+
+  for (int i = 0; i < max; i++)
+  {
+
+    if (rot_count >= clk_count)
+    {
+      rot_count += moves.rot.delay;
+      bcm2835_gpio_write(rot_step_pin, HIGH);
     }
-    if(bcm2835_gpio_lev(inner_limit_pin) == 1){
-      return -1;
+
+    usleep(CLK_PULSE);
+
+    bcm2835_gpio_write(rot_step_pin, LOW);
+
+    usleep(CLK_PAUSE);
+
+    if (lin_count >= clk_count)
+    {
+      lin_count += moves.lin.delay;
+      bcm2835_gpio_write(lin_step_pin, HIGH);
     }
-    return 0;
+
+    usleep(CLK_PULSE);
+
+    bcm2835_gpio_write(rot_step_pin, LOW);
+
+    usleep(CLK_PAUSE);
+
+    clk_count += CLK_SPEED;
+  }
 }
 
 int step_with_delay(int steps, int delay, int step_pin, int dir_pin)
@@ -128,7 +180,7 @@ int step_with_delay(int steps, int delay, int step_pin, int dir_pin)
   tim1.tv_sec = 0;
   tim1.tv_nsec = delay;
 
-  bcm2835_gpio_write(step_pin, steps > 0 ? HIGH : LOW);
+  bcm2835_gpio_write(dir_pin, steps > 0 ? HIGH : LOW);
 
   for (int i = 0; i < abs(steps); i++)
   {
@@ -136,11 +188,11 @@ int step_with_delay(int steps, int delay, int step_pin, int dir_pin)
     nanosleep(&tim1, &tim2);
     bcm2835_gpio_write(step_pin, LOW);
     nanosleep(&tim1, &tim2);
-    
-    if(is_at_limit() != 0){
+
+    if (is_at_limit() != 0)
+    {
       return is_at_limit();
     }
-
   }
 }
 
@@ -299,7 +351,9 @@ static PyObject *py_init(PyObject *self, PyObject *args)
   bcm2835_gpio_fsel(lin_en_pin, BCM2835_GPIO_FSEL_OUTP);
 
   bcm2835_gpio_fsel(inner_limit_pin, BCM2835_GPIO_FSEL_INPT);
+  bcm2835_gpio_set_pud(inner_limit_pin, BCM2835_GPIO_PUD_DOWN);
   bcm2835_gpio_fsel(outer_limit_pin, BCM2835_GPIO_FSEL_INPT);
+  bcm2835_gpio_set_pud(outer_limit_pin, BCM2835_GPIO_PUD_DOWN);
 
   return PyLong_FromLong(0L);
 }
