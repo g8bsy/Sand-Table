@@ -13,34 +13,40 @@
 int bcm2835_init(void) { return 1; }
 void bcm2835_gpio_write(uint8_t pin, uint8_t on) {}
 void bcm2835_gpio_fsel(uint8_t pin, uint8_t mode) {}
-uint8_t bcm2835_gpio_lev(uint8_t pin) {}
+uint8_t bcm2835_gpio_lev(uint8_t pin) { return 0; }
 void bcm2835_gpio_set_pud(uint8_t pin, uint8_t pud) {}
-int BCM2835_GPIO_FSEL_OUTP = 0b001;
-int BCM2835_GPIO_FSEL_INPT = 0b000;
 #define HIGH 0x1
 #define LOW 0x0
 #endif
 
- #define max(a,b) \
-   ({ __typeof__ (a) _a = (a); \
+#define max(a, b) \
+  ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
      _a > _b ? _a : _b; })
 
- #define min(a,b) \
-   ({ __typeof__ (a) _a = (a); \
+#define min(a, b) \
+  ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
-     _a < _b ? _a : _b; })    
+     _a < _b ? _a : _b; })
 
 pthread_mutex_t running_mutex;
 volatile bool is_running = false;
 int rot_dir_pin = 0, rot_step_pin = 0, rot_en_pin = 0, lin_dir_pin = 0, lin_step_pin = 0, lin_en_pin = 0, outer_limit_pin = 0, inner_limit_pin = 0;
-
 int rot_pos = -1, lin_pos = -1, inner_to_center = -1, outer_to_max = -1;
+int ramp_steps = 10;
 
 #define CLK_SPEED 80
 #define CLK_PULSE CLK_SPEED / 4
 
 #define TIME_MULT CLK_SPEED * 1000
+
+struct Movement
+{
+  int lin_steps;
+  int rot_steps;
+};
+
+typedef struct Movement vec_movement;
 
 struct MotorMovement
 {
@@ -171,7 +177,7 @@ MotorMovements *load_file(char *fname)
   return moves;
 }
 
-int is_at_limit()
+int is_at_limit(void)
 {
 
   if (bcm2835_gpio_lev(outer_limit_pin) == 0)
@@ -185,12 +191,14 @@ int is_at_limit()
   return 0;
 }
 
-int theta_rho(int theta, int rho){
+int theta_rho(int theta, int rho)
+{
 
-  return NULL;
+  return 0;
 }
 
-int steps_with_speed(int rot_steps, int lin_steps, int delay, bool checkLimit, int start_ramp, int end_ramp){
+int steps_with_speed(int rot_steps, int lin_steps, int delay, bool checkLimit)
+{
 
   int max_steps = max(rot_steps, lin_steps);
   bool lin_is_max = lin_steps == max_steps;
@@ -223,11 +231,11 @@ int steps_with_speed(int rot_steps, int lin_steps, int delay, bool checkLimit, i
 
     int pulse_time = default_pulse_time;
 
-    if (i < start_ramp)
+    if (i < ramp_steps)
     {
-      pulse_time *= (start_ramp - i);
+      pulse_time *= (ramp_steps - i);
     }
-    else if (max_steps - i < end_ramp)
+    else if (max_steps - i < ramp_steps)
     {
       pulse_time *= (max_steps - i);
     }
@@ -276,82 +284,6 @@ int steps_with_speed(int rot_steps, int lin_steps, int delay, bool checkLimit, i
   return 0;
 }
 
-
-int steps_with_delay(MotorMovements moves, bool checkLimit, int start_ramp, int end_ramp)
-{
-
-  printf("m.rot.steps=%d m.rot.delay=%d m.lin.steps=%d m.lin.delay=%d\n",
-         moves.rot.steps,
-         moves.rot.delay,
-         moves.lin.steps,
-         moves.lin.delay);
-
-  bcm2835_gpio_write(rot_dir_pin, moves.rot.steps > 0 ? HIGH : LOW);
-  bcm2835_gpio_write(lin_dir_pin, moves.lin.steps > 0 ? HIGH : LOW);
-
-  int max_steps = abs(moves.rot.steps) > abs(moves.lin.steps) ? abs(moves.rot.steps) : abs(moves.lin.steps);
-  
-  int rot_count = moves.rot.delay * CLK_SPEED;
-  int lin_count = moves.lin.delay * CLK_SPEED;
-
-  int clk_count = 0;
-
-  for (int i = 0; i < max_steps; i++)
-  {
-
-    int pulse_time = CLK_PULSE;
-
-    if (i < start_ramp)
-    {
-      pulse_time *= (start_ramp - i);
-    }
-    else if (max_steps - i < end_ramp)
-    {
-      pulse_time *= (max_steps - i);
-    }
-
-    // printf("clk_count=%d rot_count=%d lin_count=%d \n", clk_count, rot_count, lin_count);
-
-    if (checkLimit && is_at_limit() != 0)
-    {
-      printf("is_at_limit()=%d\n", is_at_limit());
-      return is_at_limit();
-    }
-
-    if (clk_count >= rot_count && moves.rot.steps != 0)
-    {
-      rot_count += moves.rot.delay * CLK_SPEED;
-      bcm2835_gpio_write(rot_step_pin, HIGH);
-      usleep(pulse_time);
-      bcm2835_gpio_write(rot_step_pin, LOW);
-      rot_pos += moves.rot.steps > 0 ? 1 : -1;
-    }
-    else
-    {
-      usleep(pulse_time);
-    }
-
-    usleep(pulse_time);
-
-    if (clk_count >= lin_count && moves.lin.steps != 0)
-    {
-      lin_count += moves.lin.delay * CLK_SPEED;
-      bcm2835_gpio_write(lin_step_pin, HIGH);
-      usleep(pulse_time);
-      bcm2835_gpio_write(lin_step_pin, LOW);
-      lin_pos += moves.lin.steps > 0 ? 1 : -1;
-    }
-    else
-    {
-      usleep(pulse_time);
-    }
-
-    usleep(pulse_time);
-
-    clk_count += CLK_SPEED;
-  }
-}
-
 void *drive_motors(void *args)
 {
 
@@ -383,8 +315,8 @@ void *drive_motors(void *args)
 
     MotorMovements this_move = moves[i];
 
-    //steps_with_delay(this_move, true, 50, 50);
-    steps_with_speed(this_move.rot.steps, this_move.lin.steps, 10, true, 50, 50);
+    // steps_with_delay(this_move, true, 50, 50);
+    steps_with_speed(this_move.rot.steps, this_move.lin.steps, 10, true);
   }
 
   is_running = false;
@@ -472,7 +404,8 @@ static PyObject *py_init(PyObject *self, PyObject *args)
   return PyLong_FromLong(0L);
 }
 
-static PyObject *py_steps(PyObject *self, PyObject *args){
+static PyObject *py_steps(PyObject *self, PyObject *args)
+{
 
   int lin_steps = 0, rot_steps = 0, delay = 0;
 
@@ -488,42 +421,11 @@ static PyObject *py_steps(PyObject *self, PyObject *args){
 
   bcm2835_gpio_write(rot_en_pin, LOW);
   bcm2835_gpio_write(lin_en_pin, LOW);
-  steps_with_speed(rot_steps, lin_steps, delay, true, 0, 0);
+  steps_with_speed(rot_steps, lin_steps, delay, true);
   bcm2835_gpio_write(rot_en_pin, HIGH);
   bcm2835_gpio_write(lin_en_pin, HIGH);
 
   printf("lin_pos=%d rot_pos=%d\n", lin_pos, rot_pos);
-
-  return PyLong_FromLong(0L);
-
-}
-
-static PyObject *py_move(PyObject *self, PyObject *args)
-{
-
-  bcm2835_gpio_write(rot_en_pin, LOW);
-  bcm2835_gpio_write(lin_en_pin, LOW);
-
-  int lin_steps = 0, lin_delay = 0, rot_steps = 0, rot_delay = 0;
-
-  if (!PyArg_ParseTuple(args, "iiii",
-                        &lin_steps,
-                        &lin_delay,
-                        &rot_steps,
-                        &rot_delay))
-  {
-    return NULL;
-  }
-
-  //Convert ms to us
-
-  printf("Moving lin_steps=%d , lin_delay=%d , rot_steps=%d , rot_delay = %d \n", lin_steps, lin_delay, rot_steps, rot_delay);
-  MotorMovements *this_move = create_move(lin_steps, lin_delay, rot_steps, rot_delay);
-  steps_with_delay(*this_move, true, 10, 10);
-  free_move(this_move);
-
-  bcm2835_gpio_write(rot_en_pin, HIGH);
-  bcm2835_gpio_write(lin_en_pin, HIGH);
 
   return PyLong_FromLong(0L);
 }
@@ -536,63 +438,47 @@ static PyObject *py_calibrate(PyObject *self, PyObject *args)
 
   printf("lin_pos %d", lin_pos);
 
-  int ramp = 10;
-
   lin_pos = 0;
 
-  MotorMovements *this_move = create_move(50000, 1, 0, 0);
   printf("Finding switch\n");
-  steps_with_delay(*this_move, true, ramp, ramp);
-  free_move(this_move);
+  steps_with_speed(0, 50000, 1, true);
 
   printf("lin_pos %d\n", lin_pos);
 
-  this_move = create_move(-100, 1, 0, 0);
   printf("Move back away from switch\n");
-  steps_with_delay(*this_move, false, ramp, ramp);
-  free_move(this_move);
+  steps_with_speed(0, -100, 10, false);
 
   printf("lin_pos %d\n", lin_pos);
 
-  this_move = create_move(200, 8, 0, 0);
   printf("Creep up to switch\n");
-  steps_with_delay(*this_move, true, ramp, ramp);
+  steps_with_speed(0, 200, 100, true);
 
   printf("lin_pos %d\n", lin_pos);
 
-  this_move = create_move(-100, 4, 0, 0);
   printf("Move back away from switch\n");
-  steps_with_delay(*this_move, false, ramp, ramp);
-  free_move(this_move);
+  steps_with_speed(0, -100, 100, false);
 
   printf("lin_pos %d\n", lin_pos);
 
   lin_pos = 0;
 
-  this_move = create_move(-50000, 1, 0, 0);
   printf("Finding switch\n");
-  steps_with_delay(*this_move, true, ramp, ramp);
-  free_move(this_move);
+  steps_with_speed(0, -50000, 1, true);
 
   printf("lin_pos %d\n", lin_pos);
 
-  this_move = create_move(100, 4, 0, 0);
   printf("Move back away from switch\n");
-  steps_with_delay(*this_move, false, ramp, ramp);
-  free_move(this_move);
+  steps_with_speed(0, 100, 10, false);
 
   printf("lin_pos %d\n", lin_pos);
 
-  this_move = create_move(-200, 8, 0, 0);
   printf("Creep up to switch\n");
-  steps_with_delay(*this_move, true, ramp, ramp);
+  steps_with_speed(0, -200, 100, true);
 
   printf("lin_pos %d\n", lin_pos);
 
-  this_move = create_move(100, 4, 0, 0);
   printf("Move back away from switch\n");
-  steps_with_delay(*this_move, false, ramp, ramp);
-  free_move(this_move);
+  steps_with_speed(0, 100, 1, false);
 
   printf("lin_pos %d\n", lin_pos);
 
@@ -607,7 +493,6 @@ static PyMethodDef DrivingMethods[] = {
     {"stopmotors", py_stopmotors, METH_VARARGS, "Function for driving motor"},
     {"init", py_init, METH_VARARGS, "Function for initialisation"},
     {"calibrate", py_calibrate, METH_VARARGS, "Function for calibration"},
-    {"move", py_move, METH_VARARGS, "Function to move"},
     {"steps", py_steps, METH_VARARGS, "Function to move"},
     {NULL, NULL, 0, NULL}};
 
