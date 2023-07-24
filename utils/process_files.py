@@ -3,12 +3,13 @@ import numpy as np
 from os import listdir, makedirs, path
 from os.path import isfile, join
 
+import const
 
 pending_folder = "pending/"
 
 def get_processed_folder(max_disp):
-    processed_folder = "processed/tmp/"
-    #processed_folder = "processed/max_disp=" + str(max_disp) + "/STEPS_PER_REV=" + str(const.STEPS_PER_REV) + "/MICROSTEP_SIZE=" + str(const.MICROSTEP_SIZE) +  "/LIN_RESOLUTION=" + const.LIN_RESOLUTION.replace("/", "_") + "/ROT_RESOLUTION=" + const.ROT_RESOLUTION.replace("/", "_") + "/"
+    #processed_folder = "processed/tmp/"
+    processed_folder = "processed/max_disp=" + str(max_disp) + "/STEPS_PER_REV=" + str(const.STEPS_PER_REV) + "/MICROSTEP_SIZE=" + str(const.MICROSTEP_SIZE) +  "/LIN_RESOLUTION=" + const.LIN_RESOLUTION.replace("/", "_") + "/ROT_RESOLUTION=" + const.ROT_RESOLUTION.replace("/", "_") + "/"
     isExist = path.exists(processed_folder)
     if not isExist:
         # Create a new directory because it does not exist
@@ -30,20 +31,20 @@ def get_coors(filename, folder, max_disp):
 
     coors = np.array([0, 0])
     for c in lines:
-        print(c);
+        #print(c);
         c = c.split(" ")
         theta = float(c[0])
-        print("theta=" + str(theta));
+        #print("theta=" + str(theta));
         r = float(c[1])
-        print("r=" + str(r));
+        #print("r=" + str(r));
 
         if (theta != 0 or r != 0):
-            theta = int(8 * 10 * theta / 6.28318531)
-            print("theta_c=" + str(theta));
-            #theta = int(const.MICROSTEP_SIZE * const.STEPS_PER_REV * theta / 6.28318531)
+            #theta = int(8 * 10 * theta / 6.28318531)
+            #print("theta_c=" + str(theta));
+            theta = int(const.MICROSTEP_SIZE * const.STEPS_PER_REV * theta / 6.28318531)
             r = int(max_disp * r)
-            print("r_c=" + str(r));
-            print();
+            #print("r_c=" + str(r))
+            #print()
             coors = np.vstack((coors, [theta, r]))
             
     
@@ -55,10 +56,10 @@ def get_coors(filename, folder, max_disp):
 
 def get_steps(filename, folder, max_disp):
     coors = get_coors(filename, folder, max_disp)
-    print (coors)
+    #print (coors)
     cts = coors_to_steps(coors)
-    print ()
-    print (cts)
+    #print ()
+    #print (cts)
     return cts
 
 
