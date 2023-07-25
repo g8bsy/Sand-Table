@@ -35,7 +35,7 @@ int rot_pos = -1, lin_pos = -1, inner_to_center = -1, outer_to_max = -1;
 int steps_per_revolution = -1, steps_per_linear = -1;
 volatile bool is_running = false;
 
-#define CLK_SPEED 40
+#define CLK_SPEED 4
 #define CLK_PULSE CLK_SPEED / 4
 
 #define TIME_MULT CLK_SPEED * 1000
@@ -232,7 +232,7 @@ void load_theta_rho(char *fname)
     printf("theta_steps=%d \t rho_steps=%d last_theta_coor=%d \t last_rho_coor=%d \t theta=%f \t rho=%f \t theta_coor=%d \t rho_coor=%d \t rot_pos=%d \t lin_pos=%d \t \n",
         theta_steps, rho_steps, last_theta_coor, last_rho_coor, theta, rho, theta_coor, rho_coor, rot_pos, lin_pos);
 
-    if(steps_with_speed(theta_steps, rho_steps, 1, &is_at_limit, 10, 10) != 0){
+    if(steps_with_speed(theta_steps, rho_steps, 1, &is_at_limit, 20, 20) != 0){
       printf("%s\n", line);
       printf("lin_pos=%d \t rot_pos=%d\n", lin_pos, rot_pos);
       break;
@@ -370,7 +370,7 @@ static PyObject *py_steps(PyObject *self, PyObject *args)
 
   bcm2835_gpio_write(rot_en_pin, LOW);
   bcm2835_gpio_write(lin_en_pin, LOW);
-  steps_with_speed(rot_steps, lin_steps, delay, &is_at_limit, 10, 10);
+  steps_with_speed(rot_steps, lin_steps, delay, &is_at_limit, 20, 20);
   bcm2835_gpio_write(rot_en_pin, HIGH);
   bcm2835_gpio_write(lin_en_pin, HIGH);
 
@@ -381,6 +381,8 @@ static PyObject *py_steps(PyObject *self, PyObject *args)
 
 static PyObject *py_calibrate(PyObject *self, PyObject *args)
 {
+
+  int step_ramp = 50;
 
   bcm2835_gpio_write(rot_en_pin, LOW);
   bcm2835_gpio_write(lin_en_pin, LOW);
@@ -401,24 +403,21 @@ static PyObject *py_calibrate(PyObject *self, PyObject *args)
    {-100, 100, &is_not_at_limit}
   };
 
-  printf("\n");
-
   is_running = true;
 
-  steps_with_speed(500000, 0, 1, &is_not_at_rot_limit, 10, 10);  
-  sleep(1);
-  steps_with_speed(500000, 0, 1, &is_at_rot_limit, 10, 10);  
-  sleep(1);
+  steps_with_speed(500000, 0, 1, &is_not_at_rot_limit, step_ramp, step_ramp);  
+  steps_with_speed(500000, 0, 1, &is_at_rot_limit, step_ramp, step_ramp);  
   rot_pos = 0;
-  steps_with_speed(500000, 0, 1, &is_not_at_rot_limit, 10, 10);  
-  sleep(1);
-  steps_with_speed(500000, 0, 1, &is_at_rot_limit, 10, 10);  
+  steps_with_speed(500000, 0, 1, &is_not_at_rot_limit, step_ramp, step_ramp);  
+  steps_with_speed(500000, 0, 1, &is_at_rot_limit, step_ramp, step_ramp);  
   steps_per_revolution = abs(rot_pos);
   rot_pos = 0;
   
+  printf("Calibrated steps_per_revolution=%d", steps_per_revolution);
+
   for(int i=0 ; i<4 ; i++){
     printf("%s\n", descriptions[i]);
-    steps_with_speed(0, cali_moves[i][0], cali_moves[i][1], cali_moves[i][2], 10, 10);  
+    steps_with_speed(0, cali_moves[i][0], cali_moves[i][1], cali_moves[i][2], step_ramp, step_ramp);  
     printf("lin_pos=%d\n", lin_pos);
   }
 
@@ -426,7 +425,7 @@ static PyObject *py_calibrate(PyObject *self, PyObject *args)
 
   for(int i=0 ; i<4 ; i++){
     printf("%s\n", descriptions[i]);
-    steps_with_speed(0, -cali_moves[i][0], cali_moves[i][1], cali_moves[i][2], 10, 10);  
+    steps_with_speed(0, -cali_moves[i][0], cali_moves[i][1], cali_moves[i][2], step_ramp, step_ramp);  
     printf("lin_pos=%d\n", lin_pos);
   }
 

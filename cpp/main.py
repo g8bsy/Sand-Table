@@ -32,10 +32,10 @@ def thread_function(fname):
 print(MotorDriver.init(5,6,21,24,25,7,22,18,17))
 print(MotorDriver.calibrate());
 
-x = threading.Thread(target=thread_function, args=("/home/gabrielp/Sand-Table/pending/OrderlyTransition.txt",))
+x = threading.Thread(target=thread_function, args=("/home/gabrielp/Sand-Table/pending/SpiralBezier.txt",))
 x.start()
 
-#MotorDriver.steps(0, 31960, 1);
+# MotorDriver.steps(0, 31960, 1);
 #MotorDriver.move(-1000, 100, 0, 0);
 # MotorDriver.move(-10000, 100, -10000, 100);
 # MotorDriver.move(10000, 100, 10000, 100);
