@@ -221,8 +221,24 @@ void load_theta_rho(char *fname)
 
     i++;
 
-    float theta = atof(strtok(line, " "));
-    float rho = atof(strtok(NULL, " "));
+    char* first_tok = strtok(line, " ");
+    char* second_tok = strtok(NULL, " ");
+    
+
+    if(first_tok == NULL || second_tok == null){
+      printf("Skipping %s", line);
+    }
+
+    char *first_endptr;
+    char *second_endptr;
+
+    float theta = strtof(first_tok, &first_endptr);
+    float rho = strtof(second_tok, &second_endptr);
+
+    if(first_endptr == first_tok || second_endptr == second_tok){
+      printf("Skipping %s", line);
+    }
+
     int theta_coor = (int)(steps_per_revolution * theta / 6.28318531);
     int rho_coor = (int)(steps_per_linear * rho);
 

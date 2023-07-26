@@ -1,0 +1,12 @@
+theta_rho_dir: /Users/gabrielp/Documents/GitHub/Sand-Table/pending
+a list:
+  - 1
+  - 42
+  - 3.141
+  - 1337
+  - help
+  - €
+pi_pins:
+  foo: bar
+  key: value
+  the answer: 42
