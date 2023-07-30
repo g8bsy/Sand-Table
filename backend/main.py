@@ -1,8 +1,15 @@
+from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 import yaml
 from models import *
+from utils import pi_version
+
+if not pi_version():
+    import DummyMotorDriver as MD
+else:
+    import MotorDriver as MD
 
 app = FastAPI()
 api = FastAPI()
@@ -26,10 +33,46 @@ with open("config.yaml", "r") as stream:
     except yaml.YAMLError as exc:
         print(exc)
 
+MD.init(
+    cfg["pi_pins"]["rot_dir_pin"],
+    cfg["pi_pins"]["rot_step_pin"],
+    cfg["pi_pins"]["rot_en_pin"],
+    cfg["pi_pins"]["lin_dir_pin"],
+    cfg["pi_pins"]["lin_step_pin"],
+    cfg["pi_pins"]["lin_en_pin"],
+    cfg["pi_pins"]["outer_limit_pin"],
+    cfg["pi_pins"]["inner_limit_pin"],
+    cfg["pi_pins"]["rotation_limit_pin"])
 
 @api.get("/")
 async def root():
     return {"message": "Hello World"}
+
+@api.get("/calibrate")
+async def calibrate():
+    MD.calibrate()
+    return {"message": "OK"}
+
+@api.get("/steps/{lin_steps}/{rot_steps}/{delay}")
+async def steps (lin_steps, rot_steps, delay):
+    MD.steps(lin_steps, rot_steps, delay);
+    return {"message": "OK"}
+
+@api.get("/run_file/{filename}")
+async def run_file (filename):
+    MD.run_file(filename)
+    return {"message": "OK"}
+
+@api.get("/stopmotors")
+async def stopmotors ():
+    MD.stopmotors()
+    return {"message": "OK"}
+
+@api.get("/set_speed/{speed}")
+async def set_speed (speed):
+    MD.set_speed(speed)
+    return {"message": "OK"}
+
 
 
 @api.get("/files", response_model=list[ThetaRhoFile])
@@ -47,5 +90,5 @@ async def files():
     trf = []
     for f in onlyfiles:
         trf.append(ThetaRhoFile(id=f, start=0, end=1))
-        
+
     return trf

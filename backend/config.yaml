@@ -7,6 +7,12 @@ a list:
   - help
   - €
 pi_pins:
-  foo: bar
-  key: value
-  the answer: 42
+  rot_dir_pin: 5
+  rot_step_pin: 6
+  rot_en_pin: 21
+  lin_dir_pin: 24
+  lin_step_pin: 25
+  lin_en_pin: 7
+  outer_limit_pin: 22
+  inner_limit_pin: 18
+  rotation_limit_pin: 17
