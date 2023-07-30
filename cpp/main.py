@@ -32,7 +32,7 @@ def thread_function(fname):
 print(MotorDriver.init(5,6,21,24,25,7,22,18,17))
 print(MotorDriver.calibrate());
 
-x = threading.Thread(target=thread_function, args=("/home/gabrielp/Sand-Table/pending/SpiralBezier.txt",))
+x = threading.Thread(target=thread_function, args=("/home/gabrielp/Sand-Table/pending/BurstyBezier.txt",))
 x.start()
 
 # MotorDriver.steps(0, 31960, 1);

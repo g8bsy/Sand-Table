@@ -2,7 +2,9 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+import threading import Thread;
 import yaml
+
 from models import *
 from utils import pi_version
 
@@ -11,17 +13,20 @@ if not pi_version():
 else:
     import MotorDriver as MD
 
+from threading import Lock
+lock = Lock()
+
 app = FastAPI()
 api = FastAPI()
 app.mount("/api", api)
 
-app.mount(
-    "/",
-    StaticFiles(
-        directory="/Users/gabrielp/Documents/GitHub/Sand-Table/frontend/dist", html=True
-    ),
-    name="frontend",
-)
+# app.mount(
+#     "/",
+#     StaticFiles(
+#         directory="/home/gabrielp/Sand-Table/frontend/dist", html=True
+#     ),
+#     name="frontend",
+# )
 
 
 cfg = ""
@@ -44,22 +49,39 @@ MD.init(
     cfg["pi_pins"]["inner_limit_pin"],
     cfg["pi_pins"]["rotation_limit_pin"])
 
+
+def locked(func):
+    successfully_acquired = lock.acquire(False)
+    if successfully_acquired:
+        print("Got Lock")
+        try:
+            x = threading.Thread(target=func)
+            print("Start thread")
+            x.start()
+            print("Thread started")
+            return {"message": "OK"}
+        finally:
+            lock.release()
+    else:
+        print("Can't get Lock")
+        return {"message": "Locked"}
+    
+
 @api.get("/")
 async def root():
     return {"message": "Hello World"}
 
 @api.get("/calibrate")
-async def calibrate():
+def calibrate():
     MD.calibrate()
     return {"message": "OK"}
 
 @api.get("/steps/{lin_steps}/{rot_steps}/{delay}")
-async def steps (lin_steps, rot_steps, delay):
-    MD.steps(lin_steps, rot_steps, delay);
-    return {"message": "OK"}
+def steps (lin_steps : int, rot_steps : int, delay : int):
+    return locked(lambda : MD.steps(lin_steps, rot_steps, delay))
 
 @api.get("/run_file/{filename}")
-async def run_file (filename):
+def run_file (filename):
     MD.run_file(filename)
     return {"message": "OK"}
 
@@ -72,8 +94,6 @@ async def stopmotors ():
 async def set_speed (speed):
     MD.set_speed(speed)
     return {"message": "OK"}
-
-
 
 @api.get("/files", response_model=list[ThetaRhoFile])
 async def files():
