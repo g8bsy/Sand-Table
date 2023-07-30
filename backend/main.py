@@ -2,7 +2,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-import threading import Thread;
+from threading import Thread;
 import yaml
 
 from models import *
@@ -55,7 +55,7 @@ def locked(func):
     if successfully_acquired:
         print("Got Lock")
         try:
-            x = threading.Thread(target=func)
+            x = Thread(target=func)
             print("Start thread")
             x.start()
             print("Thread started")

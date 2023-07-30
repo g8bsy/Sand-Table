@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
-#include "pthread_barrier.c"
 #include "vec.c"
 #include "bcm2835.h"
 
@@ -18,7 +17,7 @@ void bcm2835_gpio_set_pud(uint8_t pin, uint8_t pud) {}
 #define HIGH 0x1
 #define LOW 0x0
 #endif
-sh run  
+
 #define max(a, b) \
   ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
@@ -36,9 +35,16 @@ int steps_per_revolution = -1, steps_per_linear = -1;
 volatile bool is_running = false;
 volatile int speed = 80;
 
-int is_zero(void){
+int is_zero(void)
+{
   return 0;
 }
+
+int is_one(void)
+{
+  return 1;
+}
+
 int is_at_limit(void)
 {
 
@@ -53,8 +59,10 @@ int is_at_limit(void)
   return 0;
 }
 
-int is_not_at_limit(void){
-  if(is_at_limit() == 0){
+int is_not_at_limit(void)
+{
+  if (is_at_limit() == 0)
+  {
     return 1;
   }
   return 0;
@@ -65,50 +73,51 @@ int is_at_rot_limit(void)
   if (bcm2835_gpio_lev(rotation_limit_pin) == 0)
   {
     return 1;
-  } 
+  }
   return 0;
 }
 
-int is_not_at_rot_limit(void){
-  if(is_at_rot_limit() == 0){
+int is_not_at_rot_limit(void)
+{
+  if (is_at_rot_limit() == 0)
+  {
     return 1;
   }
   return 0;
 }
 
-void delayMicrosHard (unsigned int howLong)
+void delayMicrosHard(unsigned int howLong)
 {
-  struct timeval tNow, tLong, tEnd ;
+  struct timeval tNow, tLong, tEnd;
 
-  gettimeofday (&tNow, NULL) ;
-  tLong.tv_sec  = howLong / 1000000 ;
-  tLong.tv_usec = howLong % 1000000 ;
-  timeradd (&tNow, &tLong, &tEnd) ;
+  gettimeofday(&tNow, NULL);
+  tLong.tv_sec = howLong / 1000000;
+  tLong.tv_usec = howLong % 1000000;
+  timeradd(&tNow, &tLong, &tEnd);
 
-  while (timercmp (&tNow, &tEnd, <))
-    gettimeofday (&tNow, NULL) ;
+  while (timercmp(&tNow, &tEnd, <))
+    gettimeofday(&tNow, NULL);
 }
 
-void delayMicros (unsigned int howLong)
+void delayMicros(unsigned int howLong)
 {
-  struct timespec sleeper ;
-  unsigned int uSecs = howLong % 1000000 ;
-  unsigned int wSecs = howLong / 1000000 ;
+  struct timespec sleeper;
+  unsigned int uSecs = howLong % 1000000;
+  unsigned int wSecs = howLong / 1000000;
 
-  /**/ if (howLong ==   0)
-    return ;
-  else if (howLong  < 100)
-    delayMicrosHard (howLong) ;
+  /**/ if (howLong == 0)
+    return;
+  else if (howLong < 100)
+    delayMicrosHard(howLong);
   else
   {
-    sleeper.tv_sec  = wSecs ;
-    sleeper.tv_nsec = (long)(uSecs * 1000L) ;
-    nanosleep (&sleeper, NULL) ;
+    sleeper.tv_sec = wSecs;
+    sleeper.tv_nsec = (long)(uSecs * 1000L);
+    nanosleep(&sleeper, NULL);
   }
 }
 
-
-int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)() , int ramp_up, int ramp_down)
+int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(), int ramp_up, int ramp_down)
 {
 
   int abs_rot_steps = abs(rot_steps);
@@ -117,7 +126,7 @@ int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(
   int max_steps = max(abs_rot_steps, abs_lin_steps);
   bool lin_is_max = abs_lin_steps == max_steps;
   bool rot_is_max = abs_rot_steps == max_steps;
-  
+
   int loop_time = delay * speed * 4;
   int default_pulse_time = loop_time / 4;
 
@@ -136,7 +145,7 @@ int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(
 
   bcm2835_gpio_write(rot_dir_pin, rot_steps < 0 ? HIGH : LOW);
   bcm2835_gpio_write(lin_dir_pin, lin_steps < 0 ? LOW : HIGH);
-  
+
   int rot_count = 0;
   int lin_count = 0;
 
@@ -145,10 +154,10 @@ int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(
   for (int i = 0; i < max_steps; i++)
   {
 
-    if(!is_running){
+    if (!is_running)
+    {
       printf("Exiting steps_with_speed as is_running=false");
       break;
-
     }
 
     int pulse_time = default_pulse_time;
@@ -162,7 +171,7 @@ int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(
       pulse_time *= (max_steps - i);
     }
 
-    //printf("clk_count=%d rot_count=%d lin_count=%d \n", clk_count, rot_count, lin_count);
+    // printf("clk_count=%d rot_count=%d lin_count=%d \n", clk_count, rot_count, lin_count);
 
     if (checkLimit() != 0)
     {
@@ -177,7 +186,6 @@ int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(
       delayMicros(pulse_time);
       bcm2835_gpio_write(rot_step_pin, LOW);
       rot_pos += rot_steps > 0 ? 1 : -1;
-      
     }
     else
     {
@@ -188,7 +196,7 @@ int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(
 
     if (clk_count >= lin_count && lin_steps != 0)
     {
-      //printf("lin_pulse_count=%d\n",++lin_pulse_count);
+      // printf("lin_pulse_count=%d\n",++lin_pulse_count);
       lin_count += lin_delay;
       bcm2835_gpio_write(lin_step_pin, HIGH);
       delayMicros(pulse_time);
@@ -208,6 +216,51 @@ int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(
   return 0;
 }
 
+struct steps_with_speed_locked_thread_args
+{
+  int rot_steps;
+  int lin_steps;
+  int delay;
+  int (*checkLimit)();
+  int ramp_up;
+  int ramp_down;
+};
+
+void steps_with_speed_locked(void *_args)
+{
+  struct steps_with_speed_locked_thread_args *args = (struct thread_args *)_args;
+
+  if (pthread_mutex_trylock(&running_mutex) != 0)
+  {
+    printf("Already running\n");
+    return 1;
+  }
+  else
+  {
+    printf("Starting steps_with_speed_locked\n");
+  }
+
+  is_running = true;
+
+  printf("lin_pos=%d rot_pos=%d\n", lin_pos, rot_pos);
+
+  bcm2835_gpio_write(rot_en_pin, LOW);
+  bcm2835_gpio_write(lin_en_pin, LOW);
+  steps_with_speed(args->rot_steps, args->lin_steps, args->delay, args->checkLimit, args->ramp_up, args->ramp_down);
+  bcm2835_gpio_write(rot_en_pin, HIGH);
+  bcm2835_gpio_write(lin_en_pin, HIGH);
+
+  printf("lin_pos=%d rot_pos=%d\n", lin_pos, rot_pos);
+
+  free(args);
+
+  pthread_mutex_unlock(&running_mutex);
+
+  pthread_exit(NULL);
+
+  return 0;
+}
+
 void load_theta_rho(char *fname)
 {
 
@@ -220,9 +273,8 @@ void load_theta_rho(char *fname)
     return;
   }
 
-    bcm2835_gpio_write(rot_en_pin, LOW);
-    bcm2835_gpio_write(lin_en_pin, LOW);
-
+  bcm2835_gpio_write(rot_en_pin, LOW);
+  bcm2835_gpio_write(lin_en_pin, LOW);
 
   // Read lines using POSIX function getline
   // This code won't work on Windows
@@ -230,8 +282,8 @@ void load_theta_rho(char *fname)
   size_t len = 0;
 
   // TODO - comment / uncomment
-   int last_rho_coor = lin_pos;
-   int last_theta_coor = abs(rot_pos % steps_per_revolution);
+  int last_rho_coor = lin_pos;
+  int last_theta_coor = abs(rot_pos % steps_per_revolution);
 
   // int last_theta_coor = 0;
   // int last_rho_coor = lin_pos;
@@ -243,16 +295,16 @@ void load_theta_rho(char *fname)
   while (getline(&line, &len, fp) != -1)
   {
 
-    if(!is_running)
+    if (!is_running)
       break;
 
     i++;
 
-    char* first_tok = strtok(line, " ");
-    char* second_tok = strtok(NULL, " ");
-    
+    char *first_tok = strtok(line, " ");
+    char *second_tok = strtok(NULL, " ");
 
-    if(first_tok == NULL || second_tok == NULL){
+    if (first_tok == NULL || second_tok == NULL)
+    {
       printf("Skipping %s", line);
       continue;
     }
@@ -263,7 +315,8 @@ void load_theta_rho(char *fname)
     float theta = strtof(first_tok, &first_endptr);
     float rho = strtof(second_tok, &second_endptr);
 
-    if(first_endptr == first_tok || second_endptr == second_tok){
+    if (first_endptr == first_tok || second_endptr == second_tok)
+    {
       printf("Skipping %s", line);
       continue;
     }
@@ -275,9 +328,10 @@ void load_theta_rho(char *fname)
     int rho_steps = rho_coor - lin_pos;
 
     printf("theta_steps=%d \t rho_steps=%d last_theta_coor=%d \t last_rho_coor=%d \t theta=%f \t rho=%f \t theta_coor=%d \t rho_coor=%d \t rot_pos=%d \t lin_pos=%d \t \n",
-        theta_steps, rho_steps, last_theta_coor, last_rho_coor, theta, rho, theta_coor, rho_coor, rot_pos, lin_pos);
+           theta_steps, rho_steps, last_theta_coor, last_rho_coor, theta, rho, theta_coor, rho_coor, rot_pos, lin_pos);
 
-    if(steps_with_speed(theta_steps, rho_steps, 1, &is_at_limit, 0, 0) != 0){
+    if (steps_with_speed(theta_steps, rho_steps, 1, &is_at_limit, 0, 0) != 0)
+    {
       printf("%s\n", line);
       printf("lin_pos=%d \t rot_pos=%d\n", lin_pos, rot_pos);
       break;
@@ -285,12 +339,10 @@ void load_theta_rho(char *fname)
 
     last_theta_coor = theta_coor;
     last_rho_coor = rho_coor;
-
   }
 
   bcm2835_gpio_write(rot_en_pin, HIGH);
   bcm2835_gpio_write(lin_en_pin, HIGH);
-
 
   // print_vec_movement(moves);
   printf("End\n");
@@ -301,8 +353,110 @@ void load_theta_rho(char *fname)
   return;
 }
 
+void calibrate()
+{
+
+  if (pthread_mutex_trylock(&running_mutex) != 0)
+  {
+    printf("Already running\n");
+    return 1;
+  }
+  else
+  {
+    printf("Starting steps_with_speed_locked\n");
+  }
+
+  is_running = true;
+
+  int step_ramp = 100;
+
+  bcm2835_gpio_write(rot_en_pin, LOW);
+  bcm2835_gpio_write(lin_en_pin, LOW);
+
+  printf("lin_pos %d", lin_pos);
+
+  lin_pos = 0;
+
+  char descriptions[4][12] = {"Find Switch",
+                              "Back Away 1",
+                              "Creep Up",
+                              "Back Away 2"};
+
+  int cali_moves[4][3] = {
+      {50000, 1, &is_at_limit},
+      {-100, 2, &is_not_at_limit},
+      {200, 2, &is_at_limit},
+      {-100, 2, &is_not_at_limit}};
+
+  steps_with_speed(500000, 0, 1, &is_not_at_rot_limit, step_ramp, step_ramp);
+  if (is_running)
+    delayMicros(100000);
+
+  steps_with_speed(500000, 0, 1, &is_at_rot_limit, step_ramp, step_ramp);
+  if (is_running)
+    delayMicros(100000);
+  rot_pos = 0;
+
+  steps_with_speed(500000, 0, 1, &is_not_at_rot_limit, step_ramp, step_ramp);
+  if (is_running)
+    delayMicros(100000);
+
+  steps_with_speed(500000, 0, 1, &is_at_rot_limit, step_ramp, step_ramp);
+  if (is_running)
+    delayMicros(100000);
+
+  steps_per_revolution = abs(rot_pos);
+  rot_pos = 0;
+
+  if (is_running)
+    printf("Calibrated steps_per_revolution=%d", steps_per_revolution);
+
+  for (int i = 0; i < 4; i++)
+  {
+    if (is_running)
+      printf("%s\n", descriptions[i]);
+    steps_with_speed(0, cali_moves[i][0], cali_moves[i][1], cali_moves[i][2], step_ramp, step_ramp);
+    if (is_running)
+      printf("lin_pos=%d\n", lin_pos);
+  }
+
+  lin_pos = 0;
+
+  for (int i = 0; i < 4; i++)
+  {
+    if (is_running)
+      printf("%s\n", descriptions[i]);
+    steps_with_speed(0, -cali_moves[i][0], cali_moves[i][1], cali_moves[i][2], step_ramp, step_ramp);
+    if (is_running)
+      printf("lin_pos=%d\n", lin_pos);
+  }
+
+  steps_per_linear = abs(lin_pos);
+  lin_pos = 0;
+
+  bcm2835_gpio_write(rot_en_pin, HIGH);
+  bcm2835_gpio_write(lin_en_pin, HIGH);
+
+  if (is_running)
+    printf("Calibrated, steps_per_linear=%d, steps_per_revolution=%d", steps_per_linear, steps_per_revolution);
+
+  is_running = false;
+
+  pthread_mutex_unlock(&running_mutex);
+}
+
 static PyObject *py_run_file(PyObject *self, PyObject *args)
 {
+
+  if (pthread_mutex_trylock(&running_mutex) != 0)
+  {
+    printf("Already running\n");
+    return PyLong_FromLong(1L);
+  }
+  else
+  {
+    pthread_mutex_unlock(&running_mutex)
+  }
 
   pthread_t drive_thread;
   char *filename;
@@ -318,28 +472,10 @@ static PyObject *py_run_file(PyObject *self, PyObject *args)
   printf("Thread\n");
   return PyLong_FromLong(0L);
 
-  //load_theta_rho(filename);
+  // load_theta_rho(filename);
 
   return PyLong_FromLong(0L);
 }
-
-// static bool set_running(bool running){
-
-//   if(running){
-//     if (pthread_mutex_trylock(&running_mutex) != 0)
-//     {
-//       printf("Already running\n");
-//       return false;
-//     }
-//     else
-//     {
-//       is_running = true;
-//       return true;
-//     }
-//   } else {
-    
-//   }
-// }
 
 static PyObject *py_stopmotors(PyObject *self, PyObject *args)
 {
@@ -351,7 +487,7 @@ static PyObject *py_stopmotors(PyObject *self, PyObject *args)
 
 static PyObject *py_init(PyObject *self, PyObject *args)
 {
-  
+
   if (!PyArg_ParseTuple(args, "iiiiiiiii",
                         &rot_dir_pin,
                         &rot_step_pin,
@@ -389,7 +525,6 @@ static PyObject *py_init(PyObject *self, PyObject *args)
   bcm2835_gpio_set_pud(outer_limit_pin, BCM2835_GPIO_PUD_UP);
   bcm2835_gpio_fsel(rotation_limit_pin, BCM2835_GPIO_FSEL_INPT);
   bcm2835_gpio_set_pud(rotation_limit_pin, BCM2835_GPIO_PUD_UP);
-  
 
   printf("rot_step_pin=%d, rot_dir_pin=%d, rot_en_pin=%d\n", rot_step_pin, rot_dir_pin, rot_en_pin);
 
@@ -399,7 +534,15 @@ static PyObject *py_init(PyObject *self, PyObject *args)
 static PyObject *py_steps(PyObject *self, PyObject *args)
 {
 
-  is_running=true;
+  if (pthread_mutex_trylock(&running_mutex) != 0)
+  {
+    printf("Already running\n");
+    return PyLong_FromLong(1L);
+  }
+  else
+  {
+    pthread_mutex_unlock(&running_mutex)
+  }
 
   int lin_steps = 0, rot_steps = 0, delay = 0;
 
@@ -411,15 +554,17 @@ static PyObject *py_steps(PyObject *self, PyObject *args)
     return NULL;
   }
 
-  printf("lin_pos=%d rot_pos=%d\n", lin_pos, rot_pos);
+  struct steps_with_speed_locked_thread_args *thread_args = malloc(sizeof(struct steps_with_speed_locked_thread_args));
+  thread_args->rot_steps = rot_steps;
+  thread_args->lin_steps = lin_steps;
+  thread_args->delay = delay;
+  thread_args->checkLimit = &is_at_limit;
+  thread_args->ramp_up = 20;
+  thread_args->ramp_down = 20;
 
-  bcm2835_gpio_write(rot_en_pin, LOW);
-  bcm2835_gpio_write(lin_en_pin, LOW);
-  steps_with_speed(rot_steps, lin_steps, delay, &is_at_limit, 20, 20);
-  bcm2835_gpio_write(rot_en_pin, HIGH);
-  bcm2835_gpio_write(lin_en_pin, HIGH);
-
-  printf("lin_pos=%d rot_pos=%d\n", lin_pos, rot_pos);
+  pthread_t drive_thread;
+  printf("Start Thread\n");
+  pthread_create(&drive_thread, NULL, steps_with_speed_locked, thread_args);
 
   return PyLong_FromLong(0L);
 }
@@ -427,68 +572,20 @@ static PyObject *py_steps(PyObject *self, PyObject *args)
 static PyObject *py_calibrate(PyObject *self, PyObject *args)
 {
 
-  int step_ramp = 100;
-
-  bcm2835_gpio_write(rot_en_pin, LOW);
-  bcm2835_gpio_write(lin_en_pin, LOW);
-
-  printf("lin_pos %d", lin_pos);
-
-  lin_pos = 0;
-
-  char descriptions[4][12] = {"Find Switch",
-                     "Back Away 1",
-                     "Creep Up",
-                     "Back Away 2"};
-
-  int cali_moves[4][3] = {  
-   {50000, 1, &is_at_limit} ,
-   {-100, 2, &is_not_at_limit} ,
-   {200, 2, &is_at_limit} ,
-   {-100, 2, &is_not_at_limit}
-  };
-
-  is_running = true;
-
-  steps_with_speed(500000, 0, 1, &is_not_at_rot_limit, step_ramp, step_ramp);  
-  sleep(1);
-  steps_with_speed(500000, 0, 1, &is_at_rot_limit, step_ramp, step_ramp);  
-  sleep(1);
-  rot_pos = 0;
-  steps_with_speed(500000, 0, 1, &is_not_at_rot_limit, step_ramp, step_ramp);  
-  sleep(1);
-  steps_with_speed(500000, 0, 1, &is_at_rot_limit, step_ramp, step_ramp);  
-  sleep(1);
-  steps_per_revolution = abs(rot_pos);
-  rot_pos = 0;
-  
-  printf("Calibrated steps_per_revolution=%d", steps_per_revolution);
-
-  for(int i=0 ; i<4 ; i++){
-    printf("%s\n", descriptions[i]);
-    steps_with_speed(0, cali_moves[i][0], cali_moves[i][1], cali_moves[i][2], step_ramp, step_ramp);  
-    printf("lin_pos=%d\n", lin_pos);
+  if (pthread_mutex_trylock(&running_mutex) != 0)
+  {
+    printf("Already running\n");
+    return PyLong_FromLong(1L);
+  }
+  else
+  {
+    pthread_mutex_unlock(&running_mutex)
   }
 
-  lin_pos = 0;
-
-  for(int i=0 ; i<4 ; i++){
-    printf("%s\n", descriptions[i]);
-    steps_with_speed(0, -cali_moves[i][0], cali_moves[i][1], cali_moves[i][2], step_ramp, step_ramp);  
-    printf("lin_pos=%d\n", lin_pos);
-  }
-
-  steps_per_linear = abs(lin_pos);
-  lin_pos = 0;
-
-  bcm2835_gpio_write(rot_en_pin, HIGH);
-  bcm2835_gpio_write(lin_en_pin, HIGH);
-
-  is_running = false;
-
-  printf("Calibrated, steps_per_linear=%d, steps_per_revolution=%d", steps_per_linear , steps_per_revolution);
-
-  return PyLong_FromLong((long)steps_per_linear);
+  pthread_t drive_thread;
+  printf("Start Thread\n");
+  pthread_create(&drive_thread, NULL, calibrate, NULL);
+  return PyLong_FromLong(0L);
 }
 
 static PyMethodDef DrivingMethods[] = {
