@@ -455,7 +455,7 @@ static PyObject *py_run_file(PyObject *self, PyObject *args)
   }
   else
   {
-    pthread_mutex_unlock(&running_mutex)
+    pthread_mutex_unlock(&running_mutex);
   }
 
   pthread_t drive_thread;
@@ -482,6 +482,12 @@ static PyObject *py_stopmotors(PyObject *self, PyObject *args)
   printf("py_stopmotors _is_running %d\n", is_running);
   is_running = false;
   printf("py_stopmotors _is_running %d\n", is_running);
+  return PyLong_FromLong(0L);
+}
+
+static PyObject *py_set_speed(PyObject *self, PyObject *args)
+{
+  PyArg_ParseTuple(args, "i", &speed);
   return PyLong_FromLong(0L);
 }
 
@@ -541,7 +547,7 @@ static PyObject *py_steps(PyObject *self, PyObject *args)
   }
   else
   {
-    pthread_mutex_unlock(&running_mutex)
+    pthread_mutex_unlock(&running_mutex);
   }
 
   int lin_steps = 0, rot_steps = 0, delay = 0;
@@ -579,7 +585,7 @@ static PyObject *py_calibrate(PyObject *self, PyObject *args)
   }
   else
   {
-    pthread_mutex_unlock(&running_mutex)
+    pthread_mutex_unlock(&running_mutex);
   }
 
   pthread_t drive_thread;
@@ -594,6 +600,7 @@ static PyMethodDef DrivingMethods[] = {
     {"steps", py_steps, METH_VARARGS, "Function to move"},
     {"run_file", py_run_file, METH_VARARGS, "Function to move"},
     {"stopmotors", py_stopmotors, METH_VARARGS, "Function for driving motor"},
+    {"set_speed", py_set_speed, METH_VARARGS, "Function for Setting speed"},
     {NULL, NULL, 0, NULL}};
 
 static struct PyModuleDef motordrivermodule = {
