@@ -35,6 +35,16 @@ int steps_per_revolution = -1, steps_per_linear = -1;
 volatile bool is_running = false;
 volatile int speed = 80;
 
+static PyObject *my_callback = NULL;
+
+void callback_message(const char* msg){
+  PyGILState_STATE gstate = PyGILState_Ensure();
+  PyObject *arglist = Py_BuildValue("(s)", msg);
+  PyObject *result  = PyObject_CallObject(my_callback, arglist);
+  Py_DECREF(arglist);
+  PyGILState_Release(gstate);
+}
+
 int is_zero(void)
 {
   return 0;
@@ -363,6 +373,7 @@ void calibrate()
   }
   else
   {
+    callback_message("CALLBACK");
     printf("Starting steps_with_speed_locked\n");
   }
 
@@ -594,6 +605,26 @@ static PyObject *py_calibrate(PyObject *self, PyObject *args)
   return PyLong_FromLong(0L);
 }
 
+static PyObject * py_set_callback(PyObject *dummy, PyObject *args)
+{
+    PyObject *result = NULL;
+    PyObject *temp;
+
+    if (PyArg_ParseTuple(args, "O:set_callback", &temp)) {
+        if (!PyCallable_Check(temp)) {
+            PyErr_SetString(PyExc_TypeError, "parameter must be callable");
+            return NULL;
+        }
+        Py_XINCREF(temp);         /* Add a reference to new callback */
+        Py_XDECREF(my_callback);  /* Dispose of previous callback */
+        my_callback = temp;       /* Remember new callback */
+        /* Boilerplate to return "None" */
+        Py_INCREF(Py_None);
+        result = Py_None;
+    }
+    return result;
+}
+
 static PyMethodDef DrivingMethods[] = {
     {"init", py_init, METH_VARARGS, "Function for initialisation"},
     {"calibrate", py_calibrate, METH_VARARGS, "Function for calibration"},
@@ -601,6 +632,7 @@ static PyMethodDef DrivingMethods[] = {
     {"run_file", py_run_file, METH_VARARGS, "Function to move"},
     {"stopmotors", py_stopmotors, METH_VARARGS, "Function for driving motor"},
     {"set_speed", py_set_speed, METH_VARARGS, "Function for Setting speed"},
+    {"set_callback", py_set_callback, METH_VARARGS, "Function for Setting completion callback"},
     {NULL, NULL, 0, NULL}};
 
 static struct PyModuleDef motordrivermodule = {

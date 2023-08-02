@@ -21,6 +21,9 @@ GPIO.setup(ROT_MODE_PINS, GPIO.OUT)
 GPIO.output(LIN_MODE_PINS, LIN_RES)
 GPIO.output(ROT_MODE_PINS, ROT_RES)
 
+def callback(msg):
+    print(msg)
+
 # while True:
 #     time.sleep(0.2)
 #     print("Outer:"+str(GPIO.input(18)) + " - Inner:" + str(GPIO.input(22)))
@@ -29,10 +32,14 @@ def thread_function(fname):
     MotorDriver.run_file(fname)
     print ("thread_function done");
 
+MotorDriver.set_callback(callback)
+
 print(MotorDriver.init(5,6,21,24,25,7,22,18,17))
 print(MotorDriver.calibrate());
 
-x = threading.Thread(target=thread_function, args=("/home/gabrielp/Sand-Table/pending/BurstyBezier.txt",))
+input("Press to Run file");
+
+x = threading.Thread(target=thread_function, args=("/home/gabrielp/Sand-Table/pending/SineVsBezier.txt",))
 x.start()
 
 # MotorDriver.steps(0, 31960, 1);
