@@ -18,6 +18,23 @@ void bcm2835_gpio_set_pud(uint8_t pin, uint8_t pud) {}
 #define LOW 0x0
 #endif
 
+#define FOREACH_CB_TYPE(CB_TYPE) \
+  CB_TYPE(TASK_START)            \
+  CB_TYPE(TASK_COMPLETE)         \
+  CB_TYPE(TASK_ERROR)            \
+  CB_TYPE(LOG)
+
+#define GENERATE_ENUM(ENUM) ENUM,
+#define GENERATE_STRING(STRING) #STRING,
+
+enum CB_TYPE_ENUM
+{
+  FOREACH_CB_TYPE(GENERATE_ENUM)
+};
+
+static const char *CB_TYPE_STRING[] = {
+    FOREACH_CB_TYPE(GENERATE_STRING)};
+
 #define max(a, b) \
   ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
@@ -37,10 +54,11 @@ volatile int speed = 80;
 
 static PyObject *my_callback = NULL;
 
-void callback_message(const char* msg){
+void callback_message(CB_TYPE type, int id, const char *msg)
+{
   PyGILState_STATE gstate = PyGILState_Ensure();
-  PyObject *arglist = Py_BuildValue("(s)", msg);
-  PyObject *result  = PyObject_CallObject(my_callback, arglist);
+  PyObject *arglist = Py_BuildValue("(sis)", type, id, msg);
+  PyObject *result = PyObject_CallObject(my_callback, arglist);
   Py_DECREF(arglist);
   PyGILState_Release(gstate);
 }
@@ -363,7 +381,7 @@ void load_theta_rho(char *fname)
   return;
 }
 
-void calibrate()
+void calibrate(int task_id)
 {
 
   if (pthread_mutex_trylock(&running_mutex) != 0)
@@ -373,7 +391,7 @@ void calibrate()
   }
   else
   {
-    callback_message("CALLBACK");
+    callback_message(TASK_START, task_id, "Calibrate");
     printf("Starting steps_with_speed_locked\n");
   }
 
@@ -453,6 +471,7 @@ void calibrate()
 
   is_running = false;
 
+  callback_message(TASK_COMPLETE, task_id, "Calibrate");
   pthread_mutex_unlock(&running_mutex);
 }
 
@@ -605,24 +624,26 @@ static PyObject *py_calibrate(PyObject *self, PyObject *args)
   return PyLong_FromLong(0L);
 }
 
-static PyObject * py_set_callback(PyObject *dummy, PyObject *args)
+static PyObject *py_set_callback(PyObject *dummy, PyObject *args)
 {
-    PyObject *result = NULL;
-    PyObject *temp;
+  PyObject *result = NULL;
+  PyObject *temp;
 
-    if (PyArg_ParseTuple(args, "O:set_callback", &temp)) {
-        if (!PyCallable_Check(temp)) {
-            PyErr_SetString(PyExc_TypeError, "parameter must be callable");
-            return NULL;
-        }
-        Py_XINCREF(temp);         /* Add a reference to new callback */
-        Py_XDECREF(my_callback);  /* Dispose of previous callback */
-        my_callback = temp;       /* Remember new callback */
-        /* Boilerplate to return "None" */
-        Py_INCREF(Py_None);
-        result = Py_None;
+  if (PyArg_ParseTuple(args, "O:set_callback", &temp))
+  {
+    if (!PyCallable_Check(temp))
+    {
+      PyErr_SetString(PyExc_TypeError, "parameter must be callable");
+      return NULL;
     }
-    return result;
+    Py_XINCREF(temp);        /* Add a reference to new callback */
+    Py_XDECREF(my_callback); /* Dispose of previous callback */
+    my_callback = temp;      /* Remember new callback */
+    /* Boilerplate to return "None" */
+    Py_INCREF(Py_None);
+    result = Py_None;
+  }
+  return result;
 }
 
 static PyMethodDef DrivingMethods[] = {
