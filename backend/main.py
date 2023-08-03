@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from threading import Thread;
-import yaml
+import yaml, os
 
 from models import *
 from utils import pi_version
@@ -13,20 +13,17 @@ if not pi_version():
 else:
     import MotorDriver as MD
 
-from threading import Lock
-lock = Lock()
-
 app = FastAPI()
 api = FastAPI()
 app.mount("/api", api)
 
-# app.mount(
-#     "/",
-#     StaticFiles(
-#         directory="/home/gabrielp/Sand-Table/frontend/dist", html=True
-#     ),
-#     name="frontend",
-# )
+app.mount(
+    "/",
+    StaticFiles(
+        directory=os.path.dirname("..")+"/frontend/dist", html=True
+    ),
+    name="frontend",
+)
 
 
 cfg = ""
@@ -49,23 +46,6 @@ MD.init(
     cfg["pi_pins"]["inner_limit_pin"],
     cfg["pi_pins"]["rotation_limit_pin"])
 
-
-def locked(func):
-    successfully_acquired = lock.acquire(False)
-    if successfully_acquired:
-        print("Got Lock")
-        try:
-            x = Thread(target=func)
-            print("Start thread")
-            x.start()
-            print("Thread started")
-            return {"message": "OK"}
-        finally:
-            lock.release()
-    else:
-        print("Can't get Lock")
-        return {"message": "Locked"}
-    
 
 @api.get("/")
 async def root():
