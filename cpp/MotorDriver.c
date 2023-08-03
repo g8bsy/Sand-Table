@@ -31,6 +31,7 @@ enum CB_TYPE_ENUM
 {
   FOREACH_CB_TYPE(GENERATE_ENUM)
 };
+typedef enum CB_TYPE_ENUM CB_TYPE;
 
 static const char *CB_TYPE_STRING[] = {
     FOREACH_CB_TYPE(GENERATE_STRING)};
@@ -54,12 +55,14 @@ volatile int speed = 80;
 
 static PyObject *my_callback = NULL;
 
-void callback_message(CB_TYPE type, int id, const char *msg)
+void callback_message(CB_TYPE type, const char *task_id, const char *msg)
 {
   PyGILState_STATE gstate = PyGILState_Ensure();
-  PyObject *arglist = Py_BuildValue("(sis)", type, id, msg);
+  PyObject *arglist = Py_BuildValue("(sss)", CB_TYPE_STRING[type], task_id, msg);
   PyObject *result = PyObject_CallObject(my_callback, arglist);
   Py_DECREF(arglist);
+  if (result != NULL)
+    Py_DECREF(result);
   PyGILState_Release(gstate);
 }
 
@@ -143,6 +146,27 @@ void delayMicros(unsigned int howLong)
     sleeper.tv_nsec = (long)(uSecs * 1000L);
     nanosleep(&sleeper, NULL);
   }
+}
+
+bool start_task(const char* task_id, const char* msg){
+  if (pthread_mutex_trylock(&running_mutex) != 0)
+  {
+    callback_message(TASK_ERROR, task_id, msg);
+    return false;
+  }
+  else
+  {
+    is_running = true;
+    callback_message(TASK_START, task_id, msg);
+    return true;
+  }
+  
+}
+
+bool stop_task(const char* task_id, const char* msg){
+  pthread_mutex_unlock(&running_mutex);
+  is_running = false;
+  callback_message(TASK_COMPLETE, task_id, msg);  
 }
 
 int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(), int ramp_up, int ramp_down)
@@ -246,6 +270,7 @@ int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(
 
 struct steps_with_speed_locked_thread_args
 {
+  char *task_id;
   int rot_steps;
   int lin_steps;
   int delay;
@@ -256,19 +281,12 @@ struct steps_with_speed_locked_thread_args
 
 void steps_with_speed_locked(void *_args)
 {
-  struct steps_with_speed_locked_thread_args *args = (struct thread_args *)_args;
+  struct steps_with_speed_locked_thread_args *args = (struct steps_with_speed_locked_thread_args *)_args;
 
-  if (pthread_mutex_trylock(&running_mutex) != 0)
-  {
-    printf("Already running\n");
-    return 1;
+  if(!start_task(args->task_id, "steps_with_speed_locked")){
+    free(args);
+    return;
   }
-  else
-  {
-    printf("Starting steps_with_speed_locked\n");
-  }
-
-  is_running = true;
 
   printf("lin_pos=%d rot_pos=%d\n", lin_pos, rot_pos);
 
@@ -279,22 +297,28 @@ void steps_with_speed_locked(void *_args)
   bcm2835_gpio_write(lin_en_pin, HIGH);
 
   printf("lin_pos=%d rot_pos=%d\n", lin_pos, rot_pos);
-
+  stop_task(args->task_id, "steps_with_speed_locked");
   free(args);
-
-  pthread_mutex_unlock(&running_mutex);
-
   pthread_exit(NULL);
-
-  return 0;
 }
 
-void load_theta_rho(char *fname)
+struct load_theta_rho_thread_args
+{
+  char *task_id;
+  char *fname;
+};
+
+void load_theta_rho(void *_args)
 {
 
-  is_running = true;
+  struct load_theta_rho_thread_args *args = (struct load_theta_rho_thread_args *)_args;
 
-  FILE *fp = fopen(fname, "r");
+  if(!start_task(args->task_id, "load_theta_rho")){
+    free(args);
+    return;
+  }
+
+  FILE *fp = fopen(args->fname, "r");
   if (fp == NULL)
   {
     perror("Unable to open file!");
@@ -377,25 +401,20 @@ void load_theta_rho(char *fname)
 
   fclose(fp);
   free(line);
+  stop_task(args->task_id, "load_theta_rho");
+  free(args);
+  
 
   return;
 }
 
-void calibrate(int task_id)
+void calibrate(const char *task_id)
 {
 
-  if (pthread_mutex_trylock(&running_mutex) != 0)
-  {
-    printf("Already running\n");
-    return 1;
+  if(!start_task(task_id, "calibrate")){
+    free(task_id);
+    return;
   }
-  else
-  {
-    callback_message(TASK_START, task_id, "Calibrate");
-    printf("Starting steps_with_speed_locked\n");
-  }
-
-  is_running = true;
 
   int step_ramp = 100;
 
@@ -469,12 +488,10 @@ void calibrate(int task_id)
   if (is_running)
     printf("Calibrated, steps_per_linear=%d, steps_per_revolution=%d", steps_per_linear, steps_per_revolution);
 
-  is_running = false;
-
-  callback_message(TASK_COMPLETE, task_id, "Calibrate");
-  pthread_mutex_unlock(&running_mutex);
+  stop_task(task_id, "calibrate");
 }
 
+#pragma region PyMethod
 static PyObject *py_run_file(PyObject *self, PyObject *args)
 {
 
@@ -501,8 +518,6 @@ static PyObject *py_run_file(PyObject *self, PyObject *args)
   pthread_create(&drive_thread, NULL, load_theta_rho, (void *)filename);
   printf("Thread\n");
   return PyLong_FromLong(0L);
-
-  // load_theta_rho(filename);
 
   return PyLong_FromLong(0L);
 }
@@ -581,8 +596,10 @@ static PyObject *py_steps(PyObject *self, PyObject *args)
   }
 
   int lin_steps = 0, rot_steps = 0, delay = 0;
+  const char *task_id;
 
-  if (!PyArg_ParseTuple(args, "iii",
+  if (!PyArg_ParseTuple(args, "siii",
+                        &task_id,
                         &lin_steps,
                         &rot_steps,
                         &delay))
@@ -591,6 +608,7 @@ static PyObject *py_steps(PyObject *self, PyObject *args)
   }
 
   struct steps_with_speed_locked_thread_args *thread_args = malloc(sizeof(struct steps_with_speed_locked_thread_args));
+  thread_args->task_id = task_id;
   thread_args->rot_steps = rot_steps;
   thread_args->lin_steps = lin_steps;
   thread_args->delay = delay;
@@ -618,9 +636,17 @@ static PyObject *py_calibrate(PyObject *self, PyObject *args)
     pthread_mutex_unlock(&running_mutex);
   }
 
+  const char *task_id;
+
+  if (!PyArg_ParseTuple(args, "s",
+                        &task_id))
+  {
+    return NULL;
+  }
+
   pthread_t drive_thread;
   printf("Start Thread\n");
-  pthread_create(&drive_thread, NULL, calibrate, NULL);
+  pthread_create(&drive_thread, NULL, calibrate, task_id);
   return PyLong_FromLong(0L);
 }
 
@@ -645,7 +671,7 @@ static PyObject *py_set_callback(PyObject *dummy, PyObject *args)
   }
   return result;
 }
-
+#pragma end region PyMethod
 static PyMethodDef DrivingMethods[] = {
     {"init", py_init, METH_VARARGS, "Function for initialisation"},
     {"calibrate", py_calibrate, METH_VARARGS, "Function for calibration"},

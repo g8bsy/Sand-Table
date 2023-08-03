@@ -21,8 +21,8 @@ GPIO.setup(ROT_MODE_PINS, GPIO.OUT)
 GPIO.output(LIN_MODE_PINS, LIN_RES)
 GPIO.output(ROT_MODE_PINS, ROT_RES)
 
-def callback(msg):
-    print(msg)
+def callback(type, task_id, msg):
+    print("callback ", locals())
 
 # while True:
 #     time.sleep(0.2)
@@ -35,14 +35,14 @@ def thread_function(fname):
 MotorDriver.set_callback(callback)
 
 print(MotorDriver.init(5,6,21,24,25,7,22,18,17))
-print(MotorDriver.calibrate());
-
+# print(MotorDriver.calibrate());
+MotorDriver.steps("Gabs", 0, 10, 1);
 input("Press to Run file");
 
-x = threading.Thread(target=thread_function, args=("/home/gabrielp/Sand-Table/pending/SineVsBezier.txt",))
-x.start()
+# x = threading.Thread(target=thread_function, args=("/home/gabrielp/Sand-Table/pending/SineVsBezier.txt",))
+# x.start()
 
-# MotorDriver.steps(0, 31960, 1);
+# MotorDriver.steps(0, 10, 1);
 #MotorDriver.move(-1000, 100, 0, 0);
 # MotorDriver.move(-10000, 100, -10000, 100);
 # MotorDriver.move(10000, 100, 10000, 100);
