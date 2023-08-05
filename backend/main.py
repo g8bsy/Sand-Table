@@ -6,6 +6,7 @@ from threading import Thread;
 import yaml, os
 
 from models import *
+from task_queue import *
 from utils import pi_version
 
 if not pi_version():
@@ -20,7 +21,7 @@ app.mount("/api", api)
 app.mount(
     "/",
     StaticFiles(
-        directory=os.path.dirname("..")+"/frontend/dist", html=True
+        directory=os.path.dirname(os.getcwd())+"/frontend/dist", html=True
     ),
     name="frontend",
 )
@@ -34,6 +35,9 @@ with open("config.yaml", "r") as stream:
         cfg = yaml.safe_load(stream)
     except yaml.YAMLError as exc:
         print(exc)
+
+task_queue = TaskQueue()     
+MD.set_callback(task_queue.callback)   
 
 MD.init(
     cfg["pi_pins"]["rot_dir_pin"],
@@ -53,16 +57,18 @@ async def root():
 
 @api.get("/calibrate")
 def calibrate():
-    MD.calibrate()
+    task_queue.enque("Calibrate", lambda tid:MD.calibrate(tid), False)
     return {"message": "OK"}
 
 @api.get("/steps/{lin_steps}/{rot_steps}/{delay}")
 def steps (lin_steps : int, rot_steps : int, delay : int):
-    return locked(lambda : MD.steps(lin_steps, rot_steps, delay))
+    print(task_queue)
+    task_queue.enque("steps ", lambda tid:MD.steps(tid, lin_steps, rot_steps, delay), False)
+    return {"message": "OK"}
 
 @api.get("/run_file/{filename}")
 def run_file (filename):
-    MD.run_file(filename)
+    task_queue.enque("steps ", lambda tid:MD.run_file(tid, filename), False)
     return {"message": "OK"}
 
 @api.get("/stopmotors")
@@ -74,6 +80,10 @@ async def stopmotors ():
 async def set_speed (speed):
     MD.set_speed(speed)
     return {"message": "OK"}
+
+@api.get("/tasks")
+async def tasks ():
+    return task_queue.queue
 
 @api.get("/files", response_model=list[ThetaRhoFile])
 async def files():

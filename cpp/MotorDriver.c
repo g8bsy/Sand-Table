@@ -21,8 +21,7 @@ void bcm2835_gpio_set_pud(uint8_t pin, uint8_t pud) {}
 #define FOREACH_CB_TYPE(CB_TYPE) \
   CB_TYPE(TASK_START)            \
   CB_TYPE(TASK_COMPLETE)         \
-  CB_TYPE(TASK_ERROR)            \
-  CB_TYPE(LOG)
+  CB_TYPE(TASK_ERROR)
 
 #define GENERATE_ENUM(ENUM) ENUM,
 #define GENERATE_STRING(STRING) #STRING,
@@ -148,7 +147,8 @@ void delayMicros(unsigned int howLong)
   }
 }
 
-bool start_task(const char* task_id, const char* msg){
+bool start_task(const char *task_id, const char *msg)
+{
   if (pthread_mutex_trylock(&running_mutex) != 0)
   {
     callback_message(TASK_ERROR, task_id, msg);
@@ -160,13 +160,13 @@ bool start_task(const char* task_id, const char* msg){
     callback_message(TASK_START, task_id, msg);
     return true;
   }
-  
 }
 
-bool stop_task(const char* task_id, const char* msg){
+bool stop_task(const char *task_id, const char *msg)
+{
   pthread_mutex_unlock(&running_mutex);
   is_running = false;
-  callback_message(TASK_COMPLETE, task_id, msg);  
+  callback_message(TASK_COMPLETE, task_id, msg);
 }
 
 int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(), int ramp_up, int ramp_down)
@@ -283,7 +283,8 @@ void steps_with_speed_locked(void *_args)
 {
   struct steps_with_speed_locked_thread_args *args = (struct steps_with_speed_locked_thread_args *)_args;
 
-  if(!start_task(args->task_id, "steps_with_speed_locked")){
+  if (!start_task(args->task_id, "steps_with_speed_locked"))
+  {
     free(args);
     return;
   }
@@ -313,7 +314,8 @@ void load_theta_rho(void *_args)
 
   struct load_theta_rho_thread_args *args = (struct load_theta_rho_thread_args *)_args;
 
-  if(!start_task(args->task_id, "load_theta_rho")){
+  if (!start_task(args->task_id, "load_theta_rho"))
+  {
     free(args);
     return;
   }
@@ -403,7 +405,6 @@ void load_theta_rho(void *_args)
   free(line);
   stop_task(args->task_id, "load_theta_rho");
   free(args);
-  
 
   return;
 }
@@ -411,7 +412,8 @@ void load_theta_rho(void *_args)
 void calibrate(const char *task_id)
 {
 
-  if(!start_task(task_id, "calibrate")){
+  if (!start_task(task_id, "calibrate"))
+  {
     free(task_id);
     return;
   }
@@ -506,16 +508,21 @@ static PyObject *py_run_file(PyObject *self, PyObject *args)
   }
 
   pthread_t drive_thread;
+  const char *task_id;
   char *filename;
 
-  if (!PyArg_ParseTuple(args, "s", &filename))
+  if (!PyArg_ParseTuple(args, "ss", &task_id, &filename))
   {
     printf("Parse error\n");
     return NULL;
   }
 
+  struct load_theta_rho_thread_args *thread_args = malloc(sizeof(struct load_theta_rho_thread_args));
+  thread_args->fname = filename;
+  thread_args->task_id = task_id;
+
   printf("Start Thread\n");
-  pthread_create(&drive_thread, NULL, load_theta_rho, (void *)filename);
+  pthread_create(&drive_thread, NULL, load_theta_rho, (void *)thread_args);
   printf("Thread\n");
   return PyLong_FromLong(0L);
 

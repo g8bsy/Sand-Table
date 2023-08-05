@@ -35,10 +35,10 @@ def thread_function(fname):
 MotorDriver.set_callback(callback)
 
 print(MotorDriver.init(5,6,21,24,25,7,22,18,17))
-# print(MotorDriver.calibrate());
-MotorDriver.steps("Gabs", 0, 10, 1);
+print(MotorDriver.calibrate("g"));
+# MotorDriver.steps("Gabs", 0, 10, 1);
 input("Press to Run file");
-
+MotorDriver.run_file("c", "/home/gabrielp/Sand-Table/pending/SineVsBezier.txt")
 # x = threading.Thread(target=thread_function, args=("/home/gabrielp/Sand-Table/pending/SineVsBezier.txt",))
 # x.start()
 
