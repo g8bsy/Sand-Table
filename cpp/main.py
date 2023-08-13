@@ -1,4 +1,6 @@
 import MotorDriver
+import os
+import time
 import threading;
 import RPi.GPIO as GPIO
 
@@ -21,8 +23,40 @@ GPIO.setup(ROT_MODE_PINS, GPIO.OUT)
 GPIO.output(LIN_MODE_PINS, LIN_RES)
 GPIO.output(ROT_MODE_PINS, ROT_RES)
 
+running = True
+
+def stop():
+    running = False
+
 def callback(type, task_id, msg):
     print("callback ", locals())
+
+    if type == 'TASK_COMPLETE' :
+
+        choices = {}
+
+        choices['C'] = {'name' : "Calibrate", 'f' : lambda : MotorDriver.calibrate('g')}# 
+        choices['X'] = {'name' : "Exit", 'f' : lambda : stop()}# 
+
+        dir_path = '/home/gabrielp/Sand-Table/pending/'
+        counter = 0
+        # Iterate directory
+        for file_path in os.listdir(dir_path):
+            if os.path.isfile(os.path.join(dir_path, file_path)):
+                # add filename to list
+                counter += 1
+                filename = os.path.join(dir_path, file_path)
+                choices[str(counter)] = {'name' : filename, 'f' : lambda f=filename : MotorDriver.run_file("c", f)}
+        
+        for key, value in choices.items():
+            print(key + " " + value["name"])
+
+        inp = -1
+
+        while inp not in choices.keys():
+            inp = input("Enter your choice: ")
+
+        choices[inp]['f']()
 
 # while True:
 #     time.sleep(0.2)
@@ -35,12 +69,17 @@ def thread_function(fname):
 MotorDriver.set_callback(callback)
 
 print(MotorDriver.init(5,6,21,24,25,7,22,18,17))
-print(MotorDriver.calibrate("g"));
+x = threading.Thread(target=callback, args=("TASK_COMPLETE", "0", "0"))
+x.start()
+x.join()
+
+while running:
+    time.sleep(10000)
+
 # MotorDriver.steps("Gabs", 0, 10, 1);
-input("Press to Run file");
-MotorDriver.run_file("c", "/home/gabrielp/Sand-Table/pending/SineVsBezier.txt")
-# x = threading.Thread(target=thread_function, args=("/home/gabrielp/Sand-Table/pending/SineVsBezier.txt",))
-# x.start()
+# input("Press to Run file");
+# MotorDriver.run_file("c", "/home/gabrielp/Sand-Table/pending/erase-out-in.txt")
+
 
 # MotorDriver.steps(0, 10, 1);
 #MotorDriver.move(-1000, 100, 0, 0);

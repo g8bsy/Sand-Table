@@ -89,6 +89,26 @@ int is_at_limit(void)
   return 0;
 }
 
+int is_at_inner_limit(void)
+{
+
+  if (bcm2835_gpio_lev(inner_limit_pin) == 0)
+  {
+    return -1;
+  }
+  return 0;
+}
+
+int is_at_outer_limit(void)
+{
+
+  if (bcm2835_gpio_lev(outer_limit_pin) == 0)
+  {
+    return 1;
+  }  
+  return 0;
+}
+
 int is_not_at_limit(void)
 {
   if (is_at_limit() == 0)
@@ -349,6 +369,9 @@ void load_theta_rho(void *_args)
   while (getline(&line, &len, fp) != -1)
   {
 
+    
+    printf("%s\n", line);
+
     if (!is_running)
       break;
 
@@ -359,10 +382,10 @@ void load_theta_rho(void *_args)
 
     if (first_tok == NULL || second_tok == NULL)
     {
-      printf("Skipping %s", line);
+      printf("Skipping %s\n", line);
       continue;
-    }
-
+    } 
+    
     char *first_endptr;
     char *second_endptr;
 
@@ -406,6 +429,8 @@ void load_theta_rho(void *_args)
   stop_task(args->task_id, "load_theta_rho");
   free(args);
 
+  rot_pos = abs(rot_pos % steps_per_revolution);
+
   return;
 }
 
@@ -423,7 +448,7 @@ void calibrate(const char *task_id)
   bcm2835_gpio_write(rot_en_pin, LOW);
   bcm2835_gpio_write(lin_en_pin, LOW);
 
-  printf("lin_pos %d", lin_pos);
+  printf("lin_pos %d\n", lin_pos);
 
   lin_pos = 0;
 
@@ -432,34 +457,20 @@ void calibrate(const char *task_id)
                               "Creep Up",
                               "Back Away 2"};
 
+  
+  if(is_at_limit() == -1){
+    printf("Moving away from inner switch");
+    steps_with_speed(0, 1000, 1, &is_zero, step_ramp, step_ramp);
+  } else if(is_at_limit() == 1){
+    printf("Moving away from inner switch");
+    steps_with_speed(0, -1000, 1, &is_zero, step_ramp, step_ramp);
+  }
+  
   int cali_moves[4][3] = {
       {50000, 1, &is_at_limit},
-      {-100, 2, &is_not_at_limit},
-      {200, 2, &is_at_limit},
+      {-300, 2, &is_not_at_limit},
+      {500, 2, &is_at_limit},
       {-100, 2, &is_not_at_limit}};
-
-  steps_with_speed(500000, 0, 1, &is_not_at_rot_limit, step_ramp, step_ramp);
-  if (is_running)
-    delayMicros(100000);
-
-  steps_with_speed(500000, 0, 1, &is_at_rot_limit, step_ramp, step_ramp);
-  if (is_running)
-    delayMicros(100000);
-  rot_pos = 0;
-
-  steps_with_speed(500000, 0, 1, &is_not_at_rot_limit, step_ramp, step_ramp);
-  if (is_running)
-    delayMicros(100000);
-
-  steps_with_speed(500000, 0, 1, &is_at_rot_limit, step_ramp, step_ramp);
-  if (is_running)
-    delayMicros(100000);
-
-  steps_per_revolution = abs(rot_pos);
-  rot_pos = 0;
-
-  if (is_running)
-    printf("Calibrated steps_per_revolution=%d", steps_per_revolution);
 
   for (int i = 0; i < 4; i++)
   {
@@ -484,11 +495,34 @@ void calibrate(const char *task_id)
   steps_per_linear = abs(lin_pos);
   lin_pos = 0;
 
-  bcm2835_gpio_write(rot_en_pin, HIGH);
-  bcm2835_gpio_write(lin_en_pin, HIGH);
+  if (is_running)
+    printf("Calibrated, steps_per_linear=%d, steps_per_revolution=%d\n", steps_per_linear, steps_per_revolution);
+
+  steps_with_speed(500000, 0, 1, &is_not_at_rot_limit, step_ramp, step_ramp);
+  if (is_running)
+    delayMicros(100000);
+
+  steps_with_speed(500000, 0, 1, &is_at_rot_limit, step_ramp, step_ramp);
+  if (is_running)
+    delayMicros(100000);
+  rot_pos = 0;
+
+  steps_with_speed(500000, 0, 1, &is_not_at_rot_limit, step_ramp, step_ramp);
+  if (is_running)
+    delayMicros(100000);
+
+  steps_with_speed(500000, 0, 1, &is_at_rot_limit, step_ramp, step_ramp);
+  if (is_running)
+    delayMicros(100000);
+
+  steps_per_revolution = abs(rot_pos);
+  rot_pos = 0;
 
   if (is_running)
-    printf("Calibrated, steps_per_linear=%d, steps_per_revolution=%d", steps_per_linear, steps_per_revolution);
+    printf("Calibrated steps_per_revolution=%d", steps_per_revolution);
+
+  bcm2835_gpio_write(rot_en_pin, HIGH);
+  bcm2835_gpio_write(lin_en_pin, HIGH);
 
   stop_task(task_id, "calibrate");
 }
@@ -516,6 +550,8 @@ static PyObject *py_run_file(PyObject *self, PyObject *args)
     printf("Parse error\n");
     return NULL;
   }
+
+  printf("Running file %s\n", filename);
 
   struct load_theta_rho_thread_args *thread_args = malloc(sizeof(struct load_theta_rho_thread_args));
   thread_args->fname = filename;
