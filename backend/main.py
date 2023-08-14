@@ -19,6 +19,14 @@ api = FastAPI()
 app.mount("/api", api)
 
 app.mount(
+    "/rendered/",
+    StaticFiles(
+        directory=os.path.dirname(os.getcwd())+"/rendered", html=False
+    ),
+    name="rendered",
+)
+
+app.mount(
     "/",
     StaticFiles(
         directory=os.path.dirname(os.getcwd())+"/frontend/dist", html=True
@@ -68,7 +76,7 @@ def steps (lin_steps : int, rot_steps : int, delay : int):
 
 @api.get("/run_file/{filename}")
 def run_file (filename):
-    task_queue.enque("steps ", lambda tid:MD.run_file(tid, filename), False)
+    task_queue.enque("steps ", lambda tid:MD.run_file(tid, os.path.dirname(os.getcwd())+"/tracks/" + filename), False)
     return {"message": "OK"}
 
 @api.get("/stopmotors")
@@ -93,12 +101,12 @@ async def files():
     print(cfg)
     onlyfiles = [
         f
-        for f in listdir(cfg["theta_rho_dir"])
-        if isfile(join(cfg["theta_rho_dir"], f))
+        for f in listdir(os.path.dirname(os.getcwd())+"/tracks/")
+        if isfile(join(os.path.dirname(os.getcwd())+"/tracks/", f))
     ]
 
     trf = []
-    for f in onlyfiles:
-        trf.append(ThetaRhoFile(id=f, start=0, end=1))
+    for f in sorted(onlyfiles, key=str.casefold):
+        trf.append(ThetaRhoFile(id=f, name=f.split('.')[0], start=0, end=1))
 
     return trf

@@ -20,3 +20,6 @@ def stopmotors ():
 @staticmethod
 def set_speed (speed):
     print("set_speed ", locals())
+
+def set_callback(fn):
+    print("set_callback ", locals())
