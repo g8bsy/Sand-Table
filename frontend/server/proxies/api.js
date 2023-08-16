@@ -3,7 +3,6 @@
 const proxyPath = '/api';
 
 module.exports = function (app) {
-
   let proxy = require('http-proxy').createProxyServer({});
 
   proxy.on('error', function (err, req) {
@@ -14,5 +13,4 @@ module.exports = function (app) {
     req.url = proxyPath + '/' + req.url;
     proxy.web(req, res, { target: 'http://localhost:8000' });
   });
-
 };
