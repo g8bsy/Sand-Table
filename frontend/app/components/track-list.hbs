@@ -1,4 +1,4 @@
-{{!-- {{#if this.mightPlay}}
+{{#if this.mightPlay}}
 <BsModalSimple
   @open={{true}}
   @title="Play Track"
@@ -13,7 +13,7 @@
 {{/if}}
 
 <BsAccordion as |acc|>
-  {{#each this.model as |file|}}
+  {{#each @fileList as |file|}}
     <acc.item as |aitem|>
       <aitem.title>
         <img alt="{{file.name}}" src="/rendered/{{file.name}}.png" width="50" height="50"/>&nbsp;&nbsp;{{file.name}}
@@ -26,6 +26,4 @@
       </aitem.body>
     </acc.item>
   {{/each}}
-</BsAccordion> --}}
-
-<TrackList @fileList={{this.model}}/>
+</BsAccordion>
