@@ -38,15 +38,17 @@ def callback(type, task_id, msg):
         choices['C'] = {'name' : "Calibrate", 'f' : lambda : MotorDriver.calibrate('g')}# 
         choices['X'] = {'name' : "Exit", 'f' : lambda : stop()}# 
 
-        dir_path = '/home/gabrielp/Sand-Table/pending/'
+        dir_path = '/home/gabrielp/Sand-Table/tracks/'
         counter = 0
         # Iterate directory
-        for file_path in os.listdir(dir_path):
+        onlyfiles =  os.listdir(dir_path)
+
+        for file_path in sorted(onlyfiles, key=str.casefold):
             if os.path.isfile(os.path.join(dir_path, file_path)):
                 # add filename to list
                 counter += 1
                 filename = os.path.join(dir_path, file_path)
-                choices[str(counter)] = {'name' : filename, 'f' : lambda f=filename : MotorDriver.run_file("c", f)}
+                choices[str(counter)] = {'name' : file_path, 'f' : lambda f=filename : MotorDriver.run_file("c", f)}
         
         for key, value in choices.items():
             print(key + " " + value["name"])
@@ -75,25 +77,6 @@ x.join()
 
 while running:
     time.sleep(10000)
-
-# MotorDriver.steps("Gabs", 0, 10, 1);
-# input("Press to Run file");
-# MotorDriver.run_file("c", "/home/gabrielp/Sand-Table/pending/erase-out-in.txt")
-
-
-# MotorDriver.steps(0, 10, 1);
-#MotorDriver.move(-1000, 100, 0, 0);
-# MotorDriver.move(-10000, 100, -10000, 100);
-# MotorDriver.move(10000, 100, 10000, 100);
-#exit()
-
-# print(MotorDriver.drivemotors("/home/gabrielp/Sand-Table/processed/max_disp=5727/STEPS_PER_REV=4000/MICROSTEP_SIZE=8/LIN_RESOLUTION=1_8step/ROT_RESOLUTION=1_4step/SineVsBezier2.txt"))
-# print("time.sleep(20)")
-# time.sleep(2000)
-# print(MotorDriver.stopmotors())
-# print("stopped")
-# time.sleep(20)
-# print("done")
 
 input("Press to stop");
 print(MotorDriver.stopmotors())

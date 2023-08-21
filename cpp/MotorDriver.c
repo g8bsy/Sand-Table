@@ -47,10 +47,10 @@ static const char *CB_TYPE_STRING[] = {
 
 pthread_mutex_t running_mutex;
 int rot_dir_pin = 0, rot_step_pin = 0, rot_en_pin = 0, lin_dir_pin = 0, lin_step_pin = 0, lin_en_pin = 0, outer_limit_pin = 0, inner_limit_pin = 0, rotation_limit_pin = 0;
-int rot_pos = -1, lin_pos = -1, inner_to_center = -1, outer_to_max = -1;
-int steps_per_revolution = -1, steps_per_linear = -1;
+int rot_pos = 0, lin_pos = 0, inner_to_center = -1, outer_to_max = -1;
+int steps_per_revolution = 63541, steps_per_linear = 13406;
 volatile bool is_running = false;
-volatile int speed = 80;
+volatile int speed = 50;
 
 static PyObject *my_callback = NULL;
 
@@ -192,8 +192,8 @@ bool stop_task(const char *task_id, const char *msg)
 int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(), int ramp_up, int ramp_down)
 {
 
-  int abs_rot_steps = abs(rot_steps);
-  int abs_lin_steps = abs(lin_steps);
+  uint64_t abs_rot_steps = abs(rot_steps);
+  uint64_t abs_lin_steps = abs(lin_steps);
 
   int max_steps = max(abs_rot_steps, abs_lin_steps);
   bool lin_is_max = abs_lin_steps == max_steps;
@@ -202,8 +202,8 @@ int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(
   int loop_time = delay * speed * 4;
   int default_pulse_time = loop_time / 4;
 
-  int rot_delay = abs_rot_steps == 0 ? 0 : (rot_is_max ? loop_time : (abs_lin_steps * loop_time) / abs_rot_steps);
-  int lin_delay = abs_lin_steps == 0 ? 0 : (lin_is_max ? loop_time : (abs_rot_steps * loop_time) / abs_lin_steps);
+  uint64_t rot_delay = abs_rot_steps == 0 ? 0 : (rot_is_max ? loop_time : (abs_lin_steps * loop_time) / abs_rot_steps);
+  uint64_t lin_delay = abs_lin_steps == 0 ? 0 : (lin_is_max ? loop_time : (abs_rot_steps * loop_time) / abs_lin_steps);
 
   // printf("rot_steps=%d\n", rot_steps);
   // printf("lin_steps=%d\n", lin_steps);
@@ -218,10 +218,10 @@ int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(
   bcm2835_gpio_write(rot_dir_pin, rot_steps < 0 ? HIGH : LOW);
   bcm2835_gpio_write(lin_dir_pin, lin_steps < 0 ? LOW : HIGH);
 
-  int rot_count = 0;
-  int lin_count = 0;
+  uint64_t rot_count = 0;
+  uint64_t lin_count = 0;
 
-  int clk_count = 0;
+  uint64_t clk_count = 0;
 
   for (int i = 0; i < max_steps; i++)
   {
@@ -366,11 +366,15 @@ void load_theta_rho(void *_args)
 
   // printf("steps_per_revolution=%d steps_per_linear=%d\n", steps_per_revolution, steps_per_linear);
   int i = 0;
+
+  int last_theta_dir = 0;
+  int last_rho_dir = 0;
+
   while (getline(&line, &len, fp) != -1)
   {
 
     
-    printf("%s\n", line);
+    // printf("%s\n", line);
 
     if (!is_running)
       break;
@@ -401,11 +405,14 @@ void load_theta_rho(void *_args)
     int theta_coor = (int)(steps_per_revolution * theta / 6.28318531);
     int rho_coor = (int)(steps_per_linear * rho);
 
+    int ramp = 0;
+
     int theta_steps = theta_coor - rot_pos;
     int rho_steps = rho_coor - lin_pos;
 
-    printf("theta_steps=%d \t rho_steps=%d last_theta_coor=%d \t last_rho_coor=%d \t theta=%f \t rho=%f \t theta_coor=%d \t rho_coor=%d \t rot_pos=%d \t lin_pos=%d \t \n",
-           theta_steps, rho_steps, last_theta_coor, last_rho_coor, theta, rho, theta_coor, rho_coor, rot_pos, lin_pos);
+    
+    // printf("theta_steps=%d \t rho_steps=%d last_theta_coor=%d \t last_rho_coor=%d \t theta=%f \t rho=%f \t theta_coor=%d \t rho_coor=%d \t rot_pos=%d \t lin_pos=%d \t \n",
+    //        theta_steps, rho_steps, last_theta_coor, last_rho_coor, theta, rho, theta_coor, rho_coor, rot_pos, lin_pos);
 
     if (steps_with_speed(theta_steps, rho_steps, 1, &is_at_limit, 0, 0) != 0)
     {
@@ -498,20 +505,24 @@ void calibrate(const char *task_id)
   if (is_running)
     printf("Calibrated, steps_per_linear=%d, steps_per_revolution=%d\n", steps_per_linear, steps_per_revolution);
 
-  steps_with_speed(500000, 0, 1, &is_not_at_rot_limit, step_ramp, step_ramp);
+  printf("Calibrating Rotation 1\n");
+  steps_with_speed(100000, 0, 1, &is_not_at_rot_limit, step_ramp, step_ramp);
   if (is_running)
     delayMicros(100000);
 
-  steps_with_speed(500000, 0, 1, &is_at_rot_limit, step_ramp, step_ramp);
+  printf("Calibrating Rotation 2\n");
+  steps_with_speed(100000, 0, 1, &is_at_rot_limit, step_ramp, step_ramp);
   if (is_running)
     delayMicros(100000);
   rot_pos = 0;
 
-  steps_with_speed(500000, 0, 1, &is_not_at_rot_limit, step_ramp, step_ramp);
+  printf("Calibrating Rotation 3\n");
+  steps_with_speed(100000, 0, 1, &is_not_at_rot_limit, step_ramp, step_ramp);
   if (is_running)
     delayMicros(100000);
 
-  steps_with_speed(500000, 0, 1, &is_at_rot_limit, step_ramp, step_ramp);
+  printf("Calibrating Rotation 4\n");
+  steps_with_speed(100000, 0, 1, &is_at_rot_limit, step_ramp, step_ramp);
   if (is_running)
     delayMicros(100000);
 
@@ -519,7 +530,7 @@ void calibrate(const char *task_id)
   rot_pos = 0;
 
   if (is_running)
-    printf("Calibrated steps_per_revolution=%d", steps_per_revolution);
+    printf("Calibrated steps_per_revolution=%d\n", steps_per_revolution);
 
   bcm2835_gpio_write(rot_en_pin, HIGH);
   bcm2835_gpio_write(lin_en_pin, HIGH);
