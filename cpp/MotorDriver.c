@@ -48,9 +48,9 @@ static const char *CB_TYPE_STRING[] = {
 pthread_mutex_t running_mutex;
 int rot_dir_pin = 0, rot_step_pin = 0, rot_en_pin = 0, lin_dir_pin = 0, lin_step_pin = 0, lin_en_pin = 0, outer_limit_pin = 0, inner_limit_pin = 0, rotation_limit_pin = 0;
 int rot_pos = 0, lin_pos = 0, inner_to_center = -1, outer_to_max = -1;
-int steps_per_revolution = 63541, steps_per_linear = 13406;
+int steps_per_revolution = 31870, steps_per_linear = 6703;
 volatile bool is_running = false;
-volatile int speed = 50;
+volatile int speed = 100;
 
 static PyObject *my_callback = NULL;
 
@@ -182,7 +182,7 @@ bool start_task(const char *task_id, const char *msg)
   }
 }
 
-bool stop_task(const char *task_id, const char *msg)
+void stop_task(const char *task_id, const char *msg)
 {
   pthread_mutex_unlock(&running_mutex);
   is_running = false;
@@ -192,21 +192,21 @@ bool stop_task(const char *task_id, const char *msg)
 int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(), int ramp_up, int ramp_down)
 {
 
-  uint64_t abs_rot_steps = abs(rot_steps);
-  uint64_t abs_lin_steps = abs(lin_steps);
+  int64_t abs_rot_steps = abs(rot_steps);
+  int64_t abs_lin_steps = abs(lin_steps);
 
-  int max_steps = max(abs_rot_steps, abs_lin_steps);
+  int64_t max_steps = max(abs_rot_steps, abs_lin_steps);
   bool lin_is_max = abs_lin_steps == max_steps;
   bool rot_is_max = abs_rot_steps == max_steps;
 
-  int loop_time = delay * speed * 4;
-  int default_pulse_time = loop_time / 4;
+  int64_t loop_time = delay * speed * 4;
+  int64_t default_pulse_time = loop_time / 4;
 
-  uint64_t rot_delay = abs_rot_steps == 0 ? 0 : (rot_is_max ? loop_time : (abs_lin_steps * loop_time) / abs_rot_steps);
-  uint64_t lin_delay = abs_lin_steps == 0 ? 0 : (lin_is_max ? loop_time : (abs_rot_steps * loop_time) / abs_lin_steps);
+  int64_t rot_delay = abs_rot_steps == 0 ? 0 : (rot_is_max ? loop_time : (abs_lin_steps * loop_time) / abs_rot_steps);
+  int64_t lin_delay = abs_lin_steps == 0 ? 0 : (lin_is_max ? loop_time : (abs_rot_steps * loop_time) / abs_lin_steps);
 
-  // printf("rot_steps=%d\n", rot_steps);
-  // printf("lin_steps=%d\n", lin_steps);
+  printf("rot_steps=%d\n", rot_steps);
+  printf("lin_steps=%d\n", lin_steps);
   // printf("lin_is_max=%d\n", lin_is_max);
   // printf("rot_is_max=%d\n", rot_is_max);
   // printf("max_steps=%d\n", max_steps);
@@ -288,6 +288,46 @@ int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(
   return 0;
 }
 
+int planner_last_rot_steps;
+int planner_last_lin_steps;
+int planner_has_ramped_down = false;
+
+//Run the previous line, but work out what it needs to do once it's done
+//ie, ramp down or up. 
+// Ramp up if the previous move ramped down
+// ramp down if the next move is a reverseal
+int plan_move(int rot_steps, int lin_steps){
+
+  int ramp = 20;
+
+    //Ramp down if either axis are gonna change direction
+    bool should_ramp_down = ((rot_steps ^ planner_last_rot_steps) < 0) ;
+                              //|| ((lin_steps ^ planner_last_rot_steps) < 0) ;
+    
+    // //If the rotation is much faster then the linear, don't care about linear direction changes
+    // if(abs(planner_last_rot_steps) / 2 > abs(planner_last_lin_steps)){
+    //   should_ramp_down = (rot_steps ^ planner_last_rot_steps) < 0;
+    // }
+
+    // //If the linear is much faster then the rotation, don't care about rotation direction changes
+    // if(abs(planner_last_lin_steps) / 2 > abs(planner_last_rot_steps)){
+    //   should_ramp_down = (lin_steps ^ planner_last_lin_steps) < 0;
+    // }
+
+    
+
+  // bool should_ramp_down = (abs(rot_steps) + abs(planner_last_rot_steps) > rot_steps)
+  //                         || (abs(lin_steps) + abs(planner_last_lin_steps) > lin_steps);
+  int ret = steps_with_speed(planner_last_rot_steps, planner_last_lin_steps, 1, &is_at_limit, planner_has_ramped_down ? ramp : 0, should_ramp_down ? ramp : 0);
+
+  planner_last_rot_steps = rot_steps;
+  planner_last_lin_steps = lin_steps;
+  planner_has_ramped_down = should_ramp_down;                        
+  return ret;
+}
+
+
+
 struct steps_with_speed_locked_thread_args
 {
   char *task_id;
@@ -299,14 +339,14 @@ struct steps_with_speed_locked_thread_args
   int ramp_down;
 };
 
-void steps_with_speed_locked(void *_args)
+void * steps_with_speed_locked(void *_args)
 {
   struct steps_with_speed_locked_thread_args *args = (struct steps_with_speed_locked_thread_args *)_args;
 
   if (!start_task(args->task_id, "steps_with_speed_locked"))
   {
     free(args);
-    return;
+    return NULL;
   }
 
   printf("lin_pos=%d rot_pos=%d\n", lin_pos, rot_pos);
@@ -321,6 +361,7 @@ void steps_with_speed_locked(void *_args)
   stop_task(args->task_id, "steps_with_speed_locked");
   free(args);
   pthread_exit(NULL);
+  return NULL;
 }
 
 struct load_theta_rho_thread_args
@@ -329,7 +370,7 @@ struct load_theta_rho_thread_args
   char *fname;
 };
 
-void load_theta_rho(void *_args)
+void * load_theta_rho(void *_args)
 {
 
   struct load_theta_rho_thread_args *args = (struct load_theta_rho_thread_args *)_args;
@@ -337,14 +378,14 @@ void load_theta_rho(void *_args)
   if (!start_task(args->task_id, "load_theta_rho"))
   {
     free(args);
-    return;
+    return NULL;
   }
 
   FILE *fp = fopen(args->fname, "r");
   if (fp == NULL)
   {
     perror("Unable to open file!");
-    return;
+    return  NULL;
   }
 
   bcm2835_gpio_write(rot_en_pin, LOW);
@@ -355,20 +396,16 @@ void load_theta_rho(void *_args)
   char *line = NULL;
   size_t len = 0;
 
+  rot_pos = abs(rot_pos % steps_per_revolution);
+  
   // TODO - comment / uncomment
-  int last_rho_coor = lin_pos;
-  int last_theta_coor = abs(rot_pos % steps_per_revolution);
-
-  // int last_theta_coor = 0;
-  // int last_rho_coor = lin_pos;
+  int last_lin_pos = lin_pos;
+  int last_rot_pos = abs(rot_pos % steps_per_revolution);
 
   printf("Start\n");
 
   // printf("steps_per_revolution=%d steps_per_linear=%d\n", steps_per_revolution, steps_per_linear);
   int i = 0;
-
-  int last_theta_dir = 0;
-  int last_rho_dir = 0;
 
   while (getline(&line, &len, fp) != -1)
   {
@@ -405,25 +442,28 @@ void load_theta_rho(void *_args)
     int theta_coor = (int)(steps_per_revolution * theta / 6.28318531);
     int rho_coor = (int)(steps_per_linear * rho);
 
-    int ramp = 0;
-
-    int theta_steps = theta_coor - rot_pos;
-    int rho_steps = rho_coor - lin_pos;
+    int theta_steps = theta_coor - last_rot_pos;
+    int rho_steps = rho_coor - last_lin_pos;
 
     
-    // printf("theta_steps=%d \t rho_steps=%d last_theta_coor=%d \t last_rho_coor=%d \t theta=%f \t rho=%f \t theta_coor=%d \t rho_coor=%d \t rot_pos=%d \t lin_pos=%d \t \n",
-    //        theta_steps, rho_steps, last_theta_coor, last_rho_coor, theta, rho, theta_coor, rho_coor, rot_pos, lin_pos);
+    printf("theta_steps=%d \t rho_steps=%d \t theta=%f \t rho=%f \t theta_coor=%d \t rho_coor=%d \t rot_pos=%d \t lin_pos=%d \t \n",
+           theta_steps, rho_steps, theta, rho, theta_coor, rho_coor, rot_pos, lin_pos);
 
-    if (steps_with_speed(theta_steps, rho_steps, 1, &is_at_limit, 0, 0) != 0)
+    if (plan_move(theta_steps, rho_steps) != 0)
+//    if (steps_with_speed(theta_steps, rho_steps, 1, &is_at_limit, 0, 0) != 0)
     {
       printf("%s\n", line);
       printf("lin_pos=%d \t rot_pos=%d\n", lin_pos, rot_pos);
       break;
     }
 
-    last_theta_coor = theta_coor;
-    last_rho_coor = rho_coor;
+    last_lin_pos += rho_steps;
+    last_rot_pos += theta_steps;
+
   }
+
+  //Clear the planner 
+  plan_move(0, 0);
 
   bcm2835_gpio_write(rot_en_pin, HIGH);
   bcm2835_gpio_write(lin_en_pin, HIGH);
@@ -438,16 +478,18 @@ void load_theta_rho(void *_args)
 
   rot_pos = abs(rot_pos % steps_per_revolution);
 
-  return;
+  return NULL;
 }
 
-void calibrate(const char *task_id)
+void * calibrate(void *t_id)
 {
+
+  char *task_id = (char*)t_id;
 
   if (!start_task(task_id, "calibrate"))
   {
     free(task_id);
-    return;
+    return NULL;
   }
 
   int step_ramp = 100;
@@ -472,6 +514,9 @@ void calibrate(const char *task_id)
     printf("Moving away from inner switch");
     steps_with_speed(0, -1000, 1, &is_zero, step_ramp, step_ramp);
   }
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wint-conversion"
   
   int cali_moves[4][3] = {
       {50000, 1, &is_at_limit},
@@ -498,6 +543,8 @@ void calibrate(const char *task_id)
     if (is_running)
       printf("lin_pos=%d\n", lin_pos);
   }
+
+#pragma GCC diagnostic pop
 
   steps_per_linear = abs(lin_pos);
   lin_pos = 0;
@@ -536,9 +583,11 @@ void calibrate(const char *task_id)
   bcm2835_gpio_write(lin_en_pin, HIGH);
 
   stop_task(task_id, "calibrate");
+
+  return  NULL;
 }
 
-#pragma region PyMethod
+//#pragma region PyMethod
 static PyObject *py_run_file(PyObject *self, PyObject *args)
 {
 
@@ -553,7 +602,7 @@ static PyObject *py_run_file(PyObject *self, PyObject *args)
   }
 
   pthread_t drive_thread;
-  const char *task_id;
+  char *task_id;
   char *filename;
 
   if (!PyArg_ParseTuple(args, "ss", &task_id, &filename))
@@ -605,7 +654,7 @@ static PyObject *py_init(PyObject *self, PyObject *args)
                         &rotation_limit_pin))
   {
     return NULL;
-  }
+  } 
 
   printf("rot_dir_pin=%d \nrot_step_pin=%d \nrot_en_pin=%d \nlin_dir_pin=%d \nlin_step_pin=%d \nlin_en_pin=%d \nouter_limit_pin=%d \ninner_limit_pin=%d\n",
          rot_dir_pin, rot_step_pin, rot_en_pin, lin_dir_pin, lin_step_pin, lin_en_pin, outer_limit_pin, inner_limit_pin);
@@ -650,7 +699,7 @@ static PyObject *py_steps(PyObject *self, PyObject *args)
   }
 
   int lin_steps = 0, rot_steps = 0, delay = 0;
-  const char *task_id;
+  char *task_id;
 
   if (!PyArg_ParseTuple(args, "siii",
                         &task_id,
@@ -690,7 +739,7 @@ static PyObject *py_calibrate(PyObject *self, PyObject *args)
     pthread_mutex_unlock(&running_mutex);
   }
 
-  const char *task_id;
+  char *task_id;
 
   if (!PyArg_ParseTuple(args, "s",
                         &task_id))
@@ -700,7 +749,10 @@ static PyObject *py_calibrate(PyObject *self, PyObject *args)
 
   pthread_t drive_thread;
   printf("Start Thread\n");
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
   pthread_create(&drive_thread, NULL, calibrate, task_id);
+#pragma GCC diagnostic pop  
   return PyLong_FromLong(0L);
 }
 
@@ -725,7 +777,7 @@ static PyObject *py_set_callback(PyObject *dummy, PyObject *args)
   }
   return result;
 }
-#pragma end region PyMethod
+//#pragma end region PyMethod
 static PyMethodDef DrivingMethods[] = {
     {"init", py_init, METH_VARARGS, "Function for initialisation"},
     {"calibrate", py_calibrate, METH_VARARGS, "Function for calibration"},

@@ -14,8 +14,8 @@ microstep = {'1/2': (1, 0, 1),
 
 GPIO.setmode(GPIO.BCM)
 
-ROT_RES = microstep["1/16"]
-LIN_RES = microstep["1/16"]
+ROT_RES = microstep["1/8"]
+LIN_RES = microstep["1/8"]
 
 GPIO.setup(LIN_MODE_PINS, GPIO.OUT)
 GPIO.setup(ROT_MODE_PINS, GPIO.OUT)
