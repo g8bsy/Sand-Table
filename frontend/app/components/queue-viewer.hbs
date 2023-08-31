@@ -1,1 +1,6 @@
-{{yield}}
+
+<BsListGroup as |ListGroup|>
+  {{#each @fileList as |file|}}
+  <ListGroup.item><img alt="{{file.name}}" src="/rendered/{{file.name}}.png" width="50" height="50"/>&nbsp;&nbsp;{{file.name}}</ListGroup.item>
+  {{/each}}
+</BsListGroup>

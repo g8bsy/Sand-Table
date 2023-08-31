@@ -11,5 +11,12 @@ export default class TrackListComponent extends Component {
     this.mightPlay = item;
   }
 
-  @action queue()
+  @action queueTrack() {
+    $.ajax({
+      type: 'GET',
+      url: '/api/run_file/' + this.mightPlay.id,
+      async: false,
+    });
+    this.mightPlay = null;
+  }
 }

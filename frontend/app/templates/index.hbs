@@ -1,31 +1,9 @@
-{{!-- {{#if this.mightPlay}}
-<BsModalSimple
-  @open={{true}}
-  @title="Play Track"
-  @size="sm"
-  @onHidden={{fn (mut this.mightPlay) null}}>
-  <img alt="{{this.mightPlay.name}}" src="/rendered/{{this.mightPlay.name}}.png" width="50" height="50"/>&nbsp;&nbsp;{{this.mightPlay.name}}
-  <br/>
-  <Input id="erase-first" @type="checkbox" @checked={{this.eraseFirst}}/>&nbsp;&nbsp;&nbsp;&nbsp;<label for="erase-first">Erase First? </label>
-  <br/>
-  <Input id="play-immediately" @type="checkbox" @checked={{this.playImmediately}}/>&nbsp;&nbsp;&nbsp;&nbsp;<label for="play-immediately">Play Immediately? </label>
-</BsModalSimple>
-{{/if}}
+<div class="row">
+  <div class="col-md-6">
+<TrackList @fileList={{this.model.files}}/>
+  </div>
+  <div class="col-md-6">
+<QueueViewer @fileList={{this.model.files}}/>
+  </div>
+</div>
 
-<BsAccordion as |acc|>
-  {{#each this.model as |file|}}
-    <acc.item as |aitem|>
-      <aitem.title>
-        <img alt="{{file.name}}" src="/rendered/{{file.name}}.png" width="50" height="50"/>&nbsp;&nbsp;{{file.name}}
-      </aitem.title>
-      <aitem.body>
-        <div class="text-center play-container">
-          <img alt="{{file.name}}" src="/rendered/{{file.name}}.png" width="100%"/>
-          <BsButton @size="lg" @type="success" @onClick={{fn this.setMightPlay file}} @outline={{true}} class="play-button"><FaIcon @icon="play" /></BsButton>
-        </div>
-      </aitem.body>
-    </acc.item>
-  {{/each}}
-</BsAccordion> --}}
-
-<TrackList @fileList={{this.model}}/>

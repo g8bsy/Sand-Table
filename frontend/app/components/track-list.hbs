@@ -3,12 +3,13 @@
   @open={{true}}
   @title="Play Track"
   @size="sm"
+  @closeTitle="Cancel" @submitTitle="Ok"
   @onHidden={{fn (mut this.mightPlay) null}}>
-  <img alt="{{this.mightPlay.name}}" src="/rendered/{{this.mightPlay.name}}.png" width="50" height="50"/>&nbsp;&nbsp;{{this.mightPlay.name}}
-  <br/>
-  <Input id="erase-first" @type="checkbox" @checked={{this.eraseFirst}}/>&nbsp;&nbsp;&nbsp;&nbsp;<label for="erase-first">Erase First? </label>
-  <br/>
-  <Input id="play-immediately" @type="checkbox" @checked={{this.playImmediately}}/>&nbsp;&nbsp;&nbsp;&nbsp;<label for="play-immediately">Play Immediately? </label>
+  <BsForm @model={{this}} @onSubmit={{this.queueTrack}} @submitOnEnter={{true}} as |Form|>
+    <img alt="{{this.mightPlay.name}}" src="/rendered/{{this.mightPlay.name}}.png" width="50" height="50"/>&nbsp;&nbsp;{{this.mightPlay.name}}
+    <Form.element @controlType="checkbox" @label="Erase First?" @value={{this.eraseFirst}} />
+    <Form.element @controlType="checkbox" @label="Play Immediately?" @value={{this.playImmediately}} />
+  </BsForm>
 </BsModalSimple>
 {{/if}}
 

@@ -1,6 +1,8 @@
 from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 
 from threading import Thread;
 import yaml, os
@@ -46,6 +48,7 @@ with open("config.yaml", "r") as stream:
 
 task_queue = TaskQueue()     
 MD.set_callback(task_queue.callback)   
+task_queue.start()
 
 MD.init(
     cfg["pi_pins"]["rot_dir_pin"],
@@ -76,7 +79,7 @@ def steps (lin_steps : int, rot_steps : int, delay : int):
 
 @api.get("/run_file/{filename}")
 def run_file (filename):
-    task_queue.enque("steps ", lambda tid:MD.run_file(tid, os.path.dirname(os.getcwd())+"/tracks/" + filename), False)
+    task_queue.enque("run_file ", [lambda tid:MD.run_file(tid, os.path.dirname(os.getcwd())+"/tracks/" + filename)])
     return {"message": "OK"}
 
 @api.get("/stopmotors")
@@ -89,9 +92,11 @@ async def set_speed (speed):
     MD.set_speed(speed)
     return {"message": "OK"}
 
-@api.get("/tasks")
+@api.get("/tasks", 
+         response_model_exclude={"name"})
 async def tasks ():
-    return task_queue.queue
+    return JSONResponse(jsonable_encoder(task_queue.queue, exclude={'tasks'}))
+    #return task_queue.queue
 
 @api.get("/files", response_model=list[ThetaRhoFile])
 async def files():

@@ -436,7 +436,6 @@ void load_theta_rho(void *_args)
             previous_rho_steps = rho_steps;
             previous_ramped_down = ramp_down;
         }
-
         last_theta_coor = theta_coor;
         last_rho_coor = rho_coor;
     }
