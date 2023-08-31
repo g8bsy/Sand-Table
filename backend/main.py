@@ -98,6 +98,11 @@ async def tasks ():
     return JSONResponse(jsonable_encoder(task_queue.queue, exclude={'tasks'}))
     #return task_queue.queue
 
+@api.get("/task/{task_id}/{status}")
+async def task_move (task_id, status):
+    task_queue.callback(status, task_id, "msg")
+    return {"message": "OK"}
+
 @api.get("/files", response_model=list[ThetaRhoFile])
 async def files():
     from os import listdir
