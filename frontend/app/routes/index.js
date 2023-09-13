@@ -10,6 +10,13 @@ export default class IndexRoute extends Route {
           async: false,
         }).responseText
       ),
+      led_cfg: JSON.parse(
+        $.ajax({
+          type: 'GET',
+          url: '/api/led/cfg',
+          async: false,
+        }).responseText
+      ),
     };
   }
 }

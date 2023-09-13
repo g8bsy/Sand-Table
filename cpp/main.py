@@ -3,30 +3,25 @@ import os
 import time
 import threading;
 import RPi.GPIO as GPIO
+from threading import Event
 
-LIN_MODE_PINS=(8, 11, 10)
-ROT_MODE_PINS=(20, 19, 13)
-
-microstep = {'1/2': (1, 0, 1),
-                     '1/4': (0,1, 1),
-                     '1/8': (0, 0, 1),
-                     '1/16': (1, 1, 1)}
-
-GPIO.setmode(GPIO.BCM)
-
-ROT_RES = microstep["1/8"]
-LIN_RES = microstep["1/8"]
-
-GPIO.setup(LIN_MODE_PINS, GPIO.OUT)
-GPIO.setup(ROT_MODE_PINS, GPIO.OUT)
-
-GPIO.output(LIN_MODE_PINS, LIN_RES)
-GPIO.output(ROT_MODE_PINS, ROT_RES)
-
+exit_event_obj = threading.Event()
 running = True
 
 def stop():
+    print("Stop")
     running = False
+    exit_event_obj.set()
+
+def set_speed():
+    new_speed = int(input("New Speed"))
+    MotorDriver.set_speed(new_speed)
+    callback("TASK_COMPLETE", 0, "")
+
+def move():
+    move_lin = int(input("Linear steps? "))
+    move_rot = int(input("Rotate steps? "))
+    MotorDriver.steps("0", move_lin, move_rot, 1)
 
 def callback(type, task_id, msg):
     print("callback ", locals())
@@ -36,7 +31,9 @@ def callback(type, task_id, msg):
         choices = {}
 
         choices['C'] = {'name' : "Calibrate", 'f' : lambda : MotorDriver.calibrate('g')}# 
-        choices['X'] = {'name' : "Exit", 'f' : lambda : stop()}# 
+        choices['X'] = {'name' : "Exit", 'f' : lambda : stop()} 
+        choices['S'] = {'name' : "Speed", 'f' : lambda : set_speed()}
+        choices['M'] = {'name' : "Move", 'f' : lambda : move()}
 
         dir_path = '/home/gabrielp/Sand-Table/tracks/'
         counter = 0
@@ -75,9 +72,10 @@ x = threading.Thread(target=callback, args=("TASK_COMPLETE", "0", "0"))
 x.start()
 x.join()
 
-while running:
-    time.sleep(10000)
-
-input("Press to stop");
-print(MotorDriver.stopmotors())
-input("Press to exit");
+while not exit_event_obj.is_set():
+    try:
+        print("waiting for event")
+        exit_event_obj.wait()
+    except KeyboardInterrupt: # If CTRL+C is pressed, exit cleanly:
+        print("Keyboard interrupt")
+        print(MotorDriver.stopmotors())

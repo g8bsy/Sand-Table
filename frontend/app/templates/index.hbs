@@ -3,7 +3,13 @@
 <TrackList @fileList={{this.model.files}}/>
   </div>
   <div class="col-md-6">
+    <div class="row">
+<LightControl @ledCfg={{this.model.led_cfg}}/>
+    </div>
+    <div class="row">
 <QueueViewer @fileList={{this.model.files}}/>
+    </div>
+    
   </div>
 </div>
 

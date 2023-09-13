@@ -23,18 +23,17 @@ class TaskQueue:
       
     def task_process(self):
         #  print("task_process:", locals())
-         while True:
-            if len(self.queue) > 0:
-                task = self.queue[0]
-                if task.state == "TASK_COMPLETE":
-                    if(len(task.tasks)>0):
-                         task.run_task()
-                         task.state = "WAITING_TO_COMPLETE"
-                    else:
-                        self.queue.remove(task)
-                elif task.state == "QUEUED":
-                     task.state = "WAITING_TO_START"
-                     task.task(task.task_id)
+        if len(self.queue) > 0:
+            task = self.queue[0]
+            if task.state == "TASK_COMPLETE":
+                if(len(task.tasks)>0):
+                        task.run_task()
+                        task.state = "WAITING_TO_COMPLETE"
+                else:
+                    self.queue.remove(task)
+            elif task.state == "QUEUED":
+                    task.state = "WAITING_TO_START"
+                    task.run_task()
 
     def callback(self, type, task_id, msg):
         print("callback:", locals())
@@ -45,6 +44,7 @@ class TaskQueue:
             task.state = type
 
     def enque(self, name, tasks):
+        print("enque:", locals())
         task = Task(name=name, tasks=tasks)
         self.queue.append(task)
         if(self.queue.index(task) == 0):

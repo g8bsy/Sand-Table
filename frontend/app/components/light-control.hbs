@@ -1,1 +1,19 @@
-{{yield}}
+<div class="row">
+    <div class="col-md-5">
+        <label for="ps" class="form-label">Method</label>
+        <PowerSelect id="ps" @selected={{this.method}} @options={{this.methods}} @onChange={{this.chooseMethod}} as
+            |name|>
+            {{name}}
+        </PowerSelect>
+    </div>
+    <div class="col-md-2">
+        <label for="c2" class="form-label">Color</label>
+        <ColorPicker id="cp" @value={{this.color}} @lockOpacity="false" @components={{this.components}} @onSave={{action
+            this.onSave}} />
+    </div>
+    <div class="col-md-5">
+        <label for="customRange2" class="form-label">Brightness</label>
+        <input {{on 'change' this.chooseBrightness}} type="range" class="form-range" min="0" max="255" id="customRange2"
+            value={{this.brightness}}>
+    </div>
+</div>

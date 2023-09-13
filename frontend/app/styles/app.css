@@ -1,4 +1,4 @@
-.play-button{
+.play-button {
   margin: 0;
   position: absolute;
   top: 50%;
@@ -8,6 +8,12 @@
   z-index: 10;
 }
 
-.play-container{
+.play-container {
   position: relative;
+}
+
+.pickr .pcr-button {
+  position: absolute;
+  top: 0px;
+  height: 1.8em;
 }

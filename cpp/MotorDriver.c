@@ -47,12 +47,57 @@ static const char *CB_TYPE_STRING[] = {
 
 pthread_mutex_t running_mutex;
 int rot_dir_pin = 0, rot_step_pin = 0, rot_en_pin = 0, lin_dir_pin = 0, lin_step_pin = 0, lin_en_pin = 0, outer_limit_pin = 0, inner_limit_pin = 0, rotation_limit_pin = 0;
-int rot_pos = 0, lin_pos = 0, inner_to_center = -1, outer_to_max = -1;
-int steps_per_revolution = 31870, steps_per_linear = 6703;
+int rot_pos = 0, lin_pos = 0;
+int steps_per_revolution = 0, steps_per_linear = 0;
 volatile bool is_running = false;
 volatile int speed = 100;
 
+int lin_dir = 0, rot_dir = 0, rot_at_limit = 0, lin_at_limit = 0;
+
 static PyObject *my_callback = NULL;
+
+void save_pos(){
+
+  FILE *fptr;
+  fptr = fopen("integers", "w");
+
+  if (fptr == NULL) {
+    printf("Failed to create the file.\n");
+    return;
+  }
+
+  putw(lin_pos, fptr);
+  putw(steps_per_linear, fptr);
+  putw(rot_pos, fptr);
+  putw(steps_per_revolution, fptr);
+
+  //printf("saved lin_pos=%d rot_pos=%d", lin_pos, rot_pos);
+
+  fclose(fptr);
+
+}
+
+void load_pos(){
+  FILE *fptr;
+  fptr = fopen("integers", "r");
+
+  if (fptr != NULL) {
+    printf("File opened successfully!\n");
+  }
+  else {
+    printf("Failed to open the file.\n");
+    return;
+  }
+  
+  lin_pos = getw(fptr);
+  steps_per_linear = getw(fptr);
+  rot_pos = getw(fptr);
+  steps_per_revolution = getw(fptr);
+  
+  fclose(fptr);
+  
+  printf("loaded lin_pos=%d steps_per_linear=%d rot_pos=%d steps_per_revolution=%d\n", lin_pos, steps_per_linear, rot_pos, steps_per_revolution);
+}
 
 void callback_message(CB_TYPE type, const char *task_id, const char *msg)
 {
@@ -77,6 +122,18 @@ int is_one(void)
 
 int is_at_limit(void)
 {
+
+  int rot_limit_is_on_now = bcm2835_gpio_lev(rotation_limit_pin) == 0 ;
+
+  if(!rot_at_limit && rot_limit_is_on_now)
+  {
+    //we've hit the rot limit pin
+    rot_at_limit = 1;
+  } else if(rot_at_limit && !rot_limit_is_on_now)
+  {
+    //we've released the rot limit pin
+    rot_at_limit = 0;
+  }
 
   if (bcm2835_gpio_lev(outer_limit_pin) == 0)
   {
@@ -200,13 +257,12 @@ int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(
   bool rot_is_max = abs_rot_steps == max_steps;
 
   int64_t loop_time = delay * speed * 4;
-  int64_t default_pulse_time = loop_time / 4;
-
+  
   int64_t rot_delay = abs_rot_steps == 0 ? 0 : (rot_is_max ? loop_time : (abs_lin_steps * loop_time) / abs_rot_steps);
   int64_t lin_delay = abs_lin_steps == 0 ? 0 : (lin_is_max ? loop_time : (abs_rot_steps * loop_time) / abs_lin_steps);
 
-  printf("rot_steps=%d\n", rot_steps);
-  printf("lin_steps=%d\n", lin_steps);
+  // printf("rot_steps=%d\n", rot_steps);
+  // printf("lin_steps=%d\n", lin_steps);
   // printf("lin_is_max=%d\n", lin_is_max);
   // printf("rot_is_max=%d\n", rot_is_max);
   // printf("max_steps=%d\n", max_steps);
@@ -228,11 +284,11 @@ int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(
 
     if (!is_running)
     {
-      printf("Exiting steps_with_speed as is_running=false");
+      printf("Exiting steps_with_speed as is_running=false\n");
       break;
     }
 
-    int pulse_time = default_pulse_time;
+    int pulse_time = delay * speed;
 
     if (i < ramp_up)
     {
@@ -247,9 +303,14 @@ int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(
 
     if (checkLimit() != 0)
     {
-      printf("checkLimit()=%d\n", checkLimit());
-      return checkLimit();
+      delayMicros(100);
+      if (checkLimit() != 0)
+      {
+        printf("checkLimit()=%d\n", checkLimit());
+        break;
+      }
     }
+    
 
     if (clk_count >= rot_count && rot_steps != 0)
     {
@@ -285,6 +346,8 @@ int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(
     clk_count += loop_time;
   }
 
+  save_pos();
+
   return 0;
 }
 
@@ -298,12 +361,12 @@ int planner_has_ramped_down = false;
 // ramp down if the next move is a reverseal
 int plan_move(int rot_steps, int lin_steps){
 
-  int ramp = 20;
+    int ramp = 20;
 
     //Ramp down if either axis are gonna change direction
     bool should_ramp_down = ((rot_steps ^ planner_last_rot_steps) < 0) ;
                               //|| ((lin_steps ^ planner_last_rot_steps) < 0) ;
-    
+
     // //If the rotation is much faster then the linear, don't care about linear direction changes
     // if(abs(planner_last_rot_steps) / 2 > abs(planner_last_lin_steps)){
     //   should_ramp_down = (rot_steps ^ planner_last_rot_steps) < 0;
@@ -390,6 +453,8 @@ void * load_theta_rho(void *_args)
 
   bcm2835_gpio_write(rot_en_pin, LOW);
   bcm2835_gpio_write(lin_en_pin, LOW);
+
+  delayMicros(1000);
 
   // Read lines using POSIX function getline
   // This code won't work on Windows
@@ -492,10 +557,12 @@ void * calibrate(void *t_id)
     return NULL;
   }
 
-  int step_ramp = 100;
+  int step_ramp = 20;
 
   bcm2835_gpio_write(rot_en_pin, LOW);
   bcm2835_gpio_write(lin_en_pin, LOW);
+
+  delayMicros(1000);
 
   printf("lin_pos %d\n", lin_pos);
 
@@ -509,22 +576,23 @@ void * calibrate(void *t_id)
   
   if(is_at_limit() == -1){
     printf("Moving away from inner switch");
-    steps_with_speed(0, 1000, 1, &is_zero, step_ramp, step_ramp);
+    steps_with_speed(0, 1000, 2, &is_zero, step_ramp, step_ramp);
   } else if(is_at_limit() == 1){
     printf("Moving away from inner switch");
-    steps_with_speed(0, -1000, 1, &is_zero, step_ramp, step_ramp);
+    steps_with_speed(0, -1000, 2, &is_zero, step_ramp, step_ramp);
   }
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wint-conversion"
   
-  int cali_moves[4][3] = {
-      {50000, 1, &is_at_limit},
-      {-300, 2, &is_not_at_limit},
-      {500, 2, &is_at_limit},
-      {-100, 2, &is_not_at_limit}};
+  int cali_moves[5][3] = {
+      {50000, 2, &is_at_limit},
+      {-300, 20, &is_not_at_limit},
+      {500, 20, &is_at_limit},
+      {-300, 20, &is_not_at_limit},
+      {-35, 20, &is_zero}};
 
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 5; i++)
   {
     if (is_running)
       printf("%s\n", descriptions[i]);
@@ -535,7 +603,7 @@ void * calibrate(void *t_id)
 
   lin_pos = 0;
 
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 5; i++)
   {
     if (is_running)
       printf("%s\n", descriptions[i]);
@@ -553,27 +621,44 @@ void * calibrate(void *t_id)
     printf("Calibrated, steps_per_linear=%d, steps_per_revolution=%d\n", steps_per_linear, steps_per_revolution);
 
   printf("Calibrating Rotation 1\n");
-  steps_with_speed(100000, 0, 1, &is_not_at_rot_limit, step_ramp, step_ramp);
+  steps_with_speed(-100000, 0, 20, &is_not_at_rot_limit, step_ramp, step_ramp);
+  
+  printf("Calibrating Rotation 2\n");
+  steps_with_speed(100000, 0, 2, &is_at_rot_limit, step_ramp, step_ramp);
+  if (is_running)
+    delayMicros(100000);
+  
+  
+  printf("Calibrating Rotation 2.1\n");
+  steps_with_speed(-200, 0, 20, &is_zero, step_ramp, step_ramp);
   if (is_running)
     delayMicros(100000);
 
-  printf("Calibrating Rotation 2\n");
-  steps_with_speed(100000, 0, 1, &is_at_rot_limit, step_ramp, step_ramp);
-  if (is_running)
-    delayMicros(100000);
+  printf("Calibrating Rotation 2.2\n");
+  steps_with_speed(400, 0, 20, &is_at_rot_limit, step_ramp, step_ramp);
+  
   rot_pos = 0;
 
   printf("Calibrating Rotation 3\n");
-  steps_with_speed(100000, 0, 1, &is_not_at_rot_limit, step_ramp, step_ramp);
+  steps_with_speed(100000, 0, 2, &is_not_at_rot_limit, step_ramp, 0);
+  
+  printf("Calibrating Rotation 4\n");
+  steps_with_speed(100000, 0, 2, &is_at_rot_limit, 0, step_ramp);
   if (is_running)
     delayMicros(100000);
 
-  printf("Calibrating Rotation 4\n");
-  steps_with_speed(100000, 0, 1, &is_at_rot_limit, step_ramp, step_ramp);
+  printf("Calibrating Rotation 4.1\n");
+  steps_with_speed(-200, 0, 20, &is_zero, step_ramp, step_ramp);
+  if (is_running)
+    delayMicros(100000);
+
+  printf("Calibrating Rotation 4.2\n");
+  steps_with_speed(400, 0, 20, &is_at_rot_limit, step_ramp, step_ramp);
   if (is_running)
     delayMicros(100000);
 
   steps_per_revolution = abs(rot_pos);
+  
   rot_pos = 0;
 
   if (is_running)
@@ -675,12 +760,16 @@ static PyObject *py_init(PyObject *self, PyObject *args)
 
   bcm2835_gpio_fsel(inner_limit_pin, BCM2835_GPIO_FSEL_INPT);
   bcm2835_gpio_set_pud(inner_limit_pin, BCM2835_GPIO_PUD_UP);
+
   bcm2835_gpio_fsel(outer_limit_pin, BCM2835_GPIO_FSEL_INPT);
   bcm2835_gpio_set_pud(outer_limit_pin, BCM2835_GPIO_PUD_UP);
+  
   bcm2835_gpio_fsel(rotation_limit_pin, BCM2835_GPIO_FSEL_INPT);
   bcm2835_gpio_set_pud(rotation_limit_pin, BCM2835_GPIO_PUD_UP);
 
   printf("rot_step_pin=%d, rot_dir_pin=%d, rot_en_pin=%d\n", rot_step_pin, rot_dir_pin, rot_en_pin);
+
+  load_pos();
 
   return PyLong_FromLong(0L);
 }

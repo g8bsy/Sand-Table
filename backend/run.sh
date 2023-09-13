@@ -1,1 +1,1 @@
-uvicorn main:app --reload --workers 5
+sudo uvicorn main:app --reload --workers 5 --host '0.0.0.0'

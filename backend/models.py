@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 import uuid
+import json
 
 class CustomBaseModel(BaseModel):
     def dict(self, **kwargs):
@@ -27,4 +28,7 @@ class Task(CustomBaseModel):
     def run_task(self):
         print(self)
         self.tasks[0](self.task_id)
+
+    def __str__(self):
+        return json.dumps(self, default=lambda o: o.__dict__)
 
