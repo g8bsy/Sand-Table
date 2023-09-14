@@ -56,6 +56,8 @@ int lin_dir = 0, rot_dir = 0, rot_at_limit = 0, lin_at_limit = 0;
 
 static PyObject *my_callback = NULL;
 
+void * calibrate(void *t_id);
+
 void save_pos(){
 
   FILE *fptr;
@@ -70,6 +72,7 @@ void save_pos(){
   putw(steps_per_linear, fptr);
   putw(rot_pos, fptr);
   putw(steps_per_revolution, fptr);
+  putw(speed, fptr);
 
   //printf("saved lin_pos=%d rot_pos=%d", lin_pos, rot_pos);
 
@@ -86,6 +89,8 @@ void load_pos(){
   }
   else {
     printf("Failed to open the file.\n");
+    char* t_id = "init";
+    calibrate(t_id);
     return;
   }
   
@@ -93,10 +98,14 @@ void load_pos(){
   steps_per_linear = getw(fptr);
   rot_pos = getw(fptr);
   steps_per_revolution = getw(fptr);
+  speed = getw(fptr);
+  if(speed < 100 || speed > 500){
+    speed = 250;
+  }
   
   fclose(fptr);
   
-  printf("loaded lin_pos=%d steps_per_linear=%d rot_pos=%d steps_per_revolution=%d\n", lin_pos, steps_per_linear, rot_pos, steps_per_revolution);
+  printf("loaded lin_pos=%d steps_per_linear=%d rot_pos=%d steps_per_revolution=%d speed=%d\n", lin_pos, steps_per_linear, rot_pos, steps_per_revolution, speed);
 }
 
 void callback_message(CB_TYPE type, const char *task_id, const char *msg)
@@ -290,13 +299,15 @@ int steps_with_speed(int rot_steps, int lin_steps, int delay, int (*checkLimit)(
 
     int pulse_time = delay * speed;
 
-    if (i < ramp_up)
-    {
-      pulse_time *= (ramp_up - i);
-    }
-    else if (max_steps - i < ramp_down)
-    {
-      pulse_time *= (max_steps - i);
+    if(speed < 250) {
+      if (i < ramp_up)
+      {
+        pulse_time *= (ramp_up - i);
+      }
+      else if (max_steps - i < ramp_down)
+      {
+        pulse_time *= (max_steps - i);
+      }
     }
 
     // printf("clk_count=%d rot_count=%d lin_count=%d \n", clk_count, rot_count, lin_count);
@@ -364,19 +375,20 @@ int plan_move(int rot_steps, int lin_steps){
     int ramp = 20;
 
     //Ramp down if either axis are gonna change direction
-    bool should_ramp_down = ((rot_steps ^ planner_last_rot_steps) < 0) ;
-                              //|| ((lin_steps ^ planner_last_rot_steps) < 0) ;
+    bool should_ramp_down = ((rot_steps ^ planner_last_rot_steps) < 0)
+                              || ((lin_steps ^ planner_last_rot_steps) < 0);
 
     // //If the rotation is much faster then the linear, don't care about linear direction changes
-    // if(abs(planner_last_rot_steps) / 2 > abs(planner_last_lin_steps)){
-    //   should_ramp_down = (rot_steps ^ planner_last_rot_steps) < 0;
-    // }
+    if(abs(planner_last_rot_steps) / 2 > abs(planner_last_lin_steps)){
+      should_ramp_down = (rot_steps ^ planner_last_rot_steps) < 0;
+    }
 
     // //If the linear is much faster then the rotation, don't care about rotation direction changes
-    // if(abs(planner_last_lin_steps) / 2 > abs(planner_last_rot_steps)){
-    //   should_ramp_down = (lin_steps ^ planner_last_lin_steps) < 0;
-    // }
+    if(abs(planner_last_lin_steps) / 2 > abs(planner_last_rot_steps)){
+      should_ramp_down = (lin_steps ^ planner_last_lin_steps) < 0;
+    }
 
+    
     
 
   // bool should_ramp_down = (abs(rot_steps) + abs(planner_last_rot_steps) > rot_steps)
@@ -592,7 +604,7 @@ void * calibrate(void *t_id)
       {-300, 20, &is_not_at_limit},
       {-35, 20, &is_zero}};
 
-  for (int i = 0; i < 5; i++)
+  for (int i = 0; i < 4; i++)
   {
     if (is_running)
       printf("%s\n", descriptions[i]);
@@ -722,6 +734,11 @@ static PyObject *py_set_speed(PyObject *self, PyObject *args)
 {
   PyArg_ParseTuple(args, "i", &speed);
   return PyLong_FromLong(0L);
+}
+
+static PyObject *py_get_speed(PyObject *self, PyObject *args)
+{
+  return PyLong_FromLong(speed);
 }
 
 static PyObject *py_init(PyObject *self, PyObject *args)
@@ -874,6 +891,7 @@ static PyMethodDef DrivingMethods[] = {
     {"run_file", py_run_file, METH_VARARGS, "Function to move"},
     {"stopmotors", py_stopmotors, METH_VARARGS, "Function for driving motor"},
     {"set_speed", py_set_speed, METH_VARARGS, "Function for Setting speed"},
+    {"get_speed", py_get_speed, METH_VARARGS, "Function for Setting speed"},
     {"set_callback", py_set_callback, METH_VARARGS, "Function for Setting completion callback"},
     {NULL, NULL, 0, NULL}};
 

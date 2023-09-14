@@ -32,6 +32,11 @@ def stopmotors ():
 def set_speed (speed):
     print("set_speed ", locals()) 
 
+@staticmethod 
+def get_speed (speed):
+    print("get_speed ", locals()) 
+    return 1
+
 def set_callback(fn):
     callback['fn'] = fn
     print("set_callback ", locals())

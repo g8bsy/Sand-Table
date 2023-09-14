@@ -1,10 +1,6 @@
 import Controller from '@ember/controller';
+import { inject as service } from '@ember/service';
 
 export default class IndexController extends Controller {
-  // @tracked mightPlay = null;
-  // @tracked playImmediately = false;
-  // @tracked eraseFirst = true;
-  // @action setMightPlay(item) {
-  //   this.mightPlay = item;
-  // }
+  @service screen;
 }

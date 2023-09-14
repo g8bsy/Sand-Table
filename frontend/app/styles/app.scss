@@ -1,0 +1,41 @@
+$grid-breakpoints: (
+    xs: 0,
+    sm: 36px,
+    md: 68px,
+    lg: 992px,
+    xl: 1200px,
+    xxl: 1400px
+);
+
+$container-max-widths: (
+    sm: 10px,
+    md: 20px,
+    lg: 960px,
+    xl: 1140px,
+    xxl: 1320px
+);
+
+
+
+@import "ember-bootstrap/bootstrap";
+
+.play-button {
+    margin: 0;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    -ms-transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%);
+    z-index: 10;
+}
+
+.play-container {
+    position: relative;
+}
+
+.pickr .pcr-button {
+    position: absolute;
+    top: 0px;
+    height: 1.8em;
+}
+@import "ember-power-select";

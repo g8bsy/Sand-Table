@@ -109,10 +109,14 @@ async def stopmotors ():
     MD.stopmotors()
     return {"message": "OK"}
 
-@api.get("/set_speed/{speed}")
-async def set_speed (speed):
+@api.get("/put_speed/{speed}")
+async def put_speed (speed:int):
     MD.set_speed(speed)
     return {"message": "OK"}
+
+@api.get("/speed")
+async def get_speed ():
+    return {"speed": MD.get_speed()}
 
 @api.get("/tasks", 
          response_model_exclude={"name"})

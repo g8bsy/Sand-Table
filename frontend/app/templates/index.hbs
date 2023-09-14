@@ -1,15 +1,65 @@
-<div class="row">
+{{#if screen.isSmallAndDown}}
+<BsTab as |tab|>
+  <tab.pane @title="Files">
+    <TrackList @fileList={{this.model.files}} />
+  </tab.pane>
+  <tab.pane @title="Queue">
+    <p> ... </p>
+  </tab.pane>
+  <tab.pane @title="Lights">
+    <div class="row" style="margin:10px">
+      <LightControl />
+    </div>
+
+  </tab.pane>
+  <tab.pane @title="Control">
+    <div class="row" style="margin:10px">
+      <ControlPanel />
+    </div>
+  </tab.pane>
+</BsTab>
+
+{{else}}
+
+
+
+<div class="row" style="margin:10px">
   <div class="col-md-6">
-<TrackList @fileList={{this.model.files}}/>
+    <div class="card">
+      <div class="card-header">
+        Files
+      </div>
+      <div class="card-body">
+        <TrackList @fileList={{this.model.files}} />
+      </div>
+    </div>
   </div>
   <div class="col-md-6">
     <div class="row">
-<LightControl @ledCfg={{this.model.led_cfg}}/>
+      <div class="card" style="padding:0px">
+        <div class="card-header">
+          Lights
+        </div>
+        <div class="card-body">
+          <LightControl />
+        </div>
+      </div>
+      &nbsp;<br />
+      <div class="card" style="padding:0px">
+        <div class="card-header">
+          Control Panel
+        </div>
+        <div class="card-body">
+          <ControlPanel />
+        </div>
+      </div>
     </div>
+    <div class="row">&nbsp;</div>
     <div class="row">
-<QueueViewer @fileList={{this.model.files}}/>
+      <QueueViewer @fileList={{this.model.files}} />
     </div>
-    
+
   </div>
 </div>
 
+{{/if}}

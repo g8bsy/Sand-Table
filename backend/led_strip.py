@@ -70,7 +70,8 @@ class LedStripThread(Thread):
         return Color(rgb[0], rgb[1], rgb[2])
 
     def rgb_to_hex(self, color:Color):
-        return '#' + f'{color.r:02}'  + f'{color.g:02}'  + f'{color.b:02}'
+        return '#' + f'{color.r:02x}'  + f'{color.g:02x}'  + f'{color.b:02x}'
+        #return '#' + f'{color.r}'  + f'{color.g}'  + f'{color.b}'
 
     def cfg(self, method:LedMethod, hex_color:str = "#000000"):
         self.__method = method
@@ -91,16 +92,16 @@ class LedStripThread(Thread):
                 "brightness" : self.__strip.getBrightness()}
     
     def __off(self):
-        self.__color = Color(0, 0, 0)
-        self.__colorWipe(10) 
+        self.__colorWipe(Color(0, 0, 0)) 
         time.sleep(1)
 
     # Define functions which animate LEDs in various ways.
-    def __colorWipe(self, wait_ms=50):
-        
+    def __colorWipe(self, color=None, wait_ms=50):
+        if not color:
+            color = self.__color
         """Wipe color across display a pixel at a time."""
         for i in range(self.__strip.numPixels()):
-            self.__strip.setPixelColor(i, self.__color)
+            self.__strip.setPixelColor(i, color)
             self.__strip.show()
             time.sleep(wait_ms / 1000.0)
         time.sleep(1)
